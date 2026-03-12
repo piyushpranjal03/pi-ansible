@@ -1,0 +1,5 @@
+---
+# ── Shared Variables ──
+
+# Max seconds to wait for host to come back online after a reboot
+reboot_timeout: 120

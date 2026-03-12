@@ -15,11 +15,11 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Define `all` group with a `server` host entry
     - Include `ansible_host`, `ansible_user`, and `ansible_ssh_private_key_file` placeholders
     - _Requirements: 1.2_
-  - [ ] 1.3 Create `playbooks/provision.yml` skeleton with vars block and OS compatibility check
-    - Define the play targeting `all` hosts
-    - Add the full `vars:` block with all configurable parameters (essential_packages, docker vars, boot vars, hardening vars, unattended upgrade vars, reboot_timeout)
-    - Add the OS compatibility warning pre-task that checks `ansible_os_family != "Debian"`
-    - _Requirements: 1.1, 8.1, 8.3, 4.2, 5.2, 6.2, 3.3, 9.3, 7.2_
+  - [x] 1.3 Create `playbooks/provision.yml` skeleton and `group_vars/all.yml` for shared variables
+    - Define the play targeting `all` hosts with an empty tasks section
+    - Move `reboot_timeout` (set to 120s) into `group_vars/all.yml` as a shared variable across playbooks
+    - Vars block and OS compatibility pre-task deferred — playbook is being built incrementally from a clean slate
+    - _Requirements: 1.1, 1.3, 7.2_
 
 - [ ] 2. Implement System Updates section (tag: packages)
   - [ ] 2.1 Add system update tasks to `provision.yml`

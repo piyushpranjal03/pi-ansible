@@ -1,0 +1,33 @@
+---
+- name: Provision system
+  hosts: all
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: System Updates (tag: packages)
+    # ──────────────────────────────────────────────
+
+    # Refresh the local package index so we install the latest versions
+    - name: Update apt package cache
+      ansible.builtin.apt:
+        update_cache: yes
+      tags: [packages]
+
+    # Perform a full distribution upgrade (equivalent to apt dist-upgrade)
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+      tags: [packages]
+
+    # Remove packages that were installed as dependencies but are no longer needed
+    - name: Remove unused packages
+      ansible.builtin.apt:
+        autoremove: yes
+        purge: yes
+      tags: [packages]
+
+    # Delete downloaded .deb files from the local cache to free disk space
+    - name: Clean apt cache
+      ansible.builtin.apt:
+        autoclean: yes
+      tags: [packages]
