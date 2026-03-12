@@ -102,3 +102,117 @@
         group: root
         mode: "0644"
       tags: [upgrades]
+
+    # ──────────────────────────────────────────────
+    # Section: Docker Installation (tag: docker)
+    # ──────────────────────────────────────────────
+
+    # Remove any pre-installed container packages that conflict with official Docker
+    - name: Remove conflicting Docker packages
+      ansible.builtin.apt:
+        name: "{{ docker_conflicting_packages }}"
+        state: absent
+      tags: [docker]
+
+    # Install prerequisites needed to add Docker's official repo
+    - name: Install Docker dependencies
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+      tags: [docker]
+
+    # Ensure the keyring directory exists for storing the GPG key
+    - name: Create Docker keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+      tags: [docker]
+
+    # Download Docker's official GPG key for package verification
+    - name: Add Docker GPG key
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      tags: [docker]
+
+    # Add the official Docker apt repository using detected OS facts
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ docker_arch_map[ansible_architecture] }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        filename: docker
+        state: present
+      tags: [docker]
+
+    # Install Docker engine and related tooling from the official repo
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name: "{{ docker_packages }}"
+        state: present
+        update_cache: yes
+      tags: [docker]
+
+    # Ensure Docker starts on boot and is currently running
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+      tags: [docker]
+
+    # Add specified users to the docker group so they can run containers without sudo
+    - name: Add users to docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop: "{{ docker_users }}"
+      tags: [docker]
+
+    # Detect cmdline.txt location (differs between Pi OS versions)
+    # Newer Pi OS (Bookworm+) uses /boot/firmware/cmdline.txt, older uses /boot/cmdline.txt
+    - name: Check cmdline.txt location
+      ansible.builtin.stat:
+        path: /boot/firmware/cmdline.txt
+      register: firmware_cmdline
+      tags: [docker]
+
+    - name: Set cmdline.txt path
+      ansible.builtin.set_fact:
+        cmdline_path: "{{ '/boot/firmware/cmdline.txt' if firmware_cmdline.stat.exists else '/boot/cmdline.txt' }}"
+      tags: [docker]
+
+    # Enable cgroup memory support required by Docker on older Pi kernels
+    # Without this, Docker containers can't enforce memory limits on 32-bit Pi or older 64-bit kernels
+    - name: Check if cgroup memory is already configured
+      ansible.builtin.shell: grep -q "cgroup_enable=memory" {{ cmdline_path }}
+      register: cgroup_check
+      failed_when: false
+      changed_when: false
+      tags: [docker]
+
+    - name: Enable cgroup memory support for Docker
+      ansible.builtin.lineinfile:
+        path: "{{ cmdline_path }}"
+        regexp: '^((?:(?!cgroup_enable=memory).)*?)(\s+)?$'
+        line: '\1 cgroup_enable=memory cgroup_memory=1'
+        backrefs: yes
+      register: cmdline_updated
+      when: cgroup_check.rc != 0
+      tags: [docker]
+
+    # Quick sanity check that Docker is installed and responding
+    - name: Verify Docker installation
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      tags: [docker]
+
+    - name: Display Docker version
+      ansible.builtin.debug:
+        msg: "Docker installed: {{ docker_version.stdout }}"
+      tags: [docker]

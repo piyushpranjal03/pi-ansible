@@ -40,3 +40,18 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Applied consistent section separator formatting across all vars files (`group_vars/all.yml`, `group_vars/provision.yml`)
     - Tag all tasks with `[upgrades]`
     - _Requirements: 3.1, 3.2, 3.3_
+
+- [ ] 3. Implement Docker Installation section (tag: docker)
+  - [x] 3.1 Add Docker installation tasks to `provision.yml`
+    - Remove conflicting container runtime packages using `docker_conflicting_packages` variable
+    - Install Docker prerequisites (`ca-certificates`, `curl`, `gnupg`)
+    - Add Docker GPG key using `get_url` (idempotent, replaces `shell: curl` from sample)
+    - Add Docker apt repository using `apt_repository` with Ansible facts (`ansible_distribution`, `ansible_distribution_release`, `docker_arch_map[ansible_architecture]`)
+    - Install Docker packages from `docker_packages` variable with `update_cache: yes`
+    - Enable and start Docker service via `systemd` module
+    - Add users from `docker_users` list to docker group using loop
+    - Verify installation with `docker --version` (`changed_when: false` for idempotency)
+    - Dropped `hello-world` test from sample — pulls an image every run, not idempotent
+    - Add variables to `group_vars/provision.yml`: `docker_conflicting_packages`, `docker_packages`, `docker_users`, `docker_arch_map`
+    - Tag all tasks with `[docker]`
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 8.2_

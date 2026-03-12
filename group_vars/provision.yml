@@ -40,3 +40,35 @@ unattended_syslog_facility: "daemon"
 
 # Enable verbose logging for more detailed output in logs
 unattended_verbose: false
+
+# ──────────────────────────────────────────────
+# Section: Docker Installation (tag: docker)
+# ──────────────────────────────────────────────
+
+# Packages that conflict with official Docker and must be removed first
+docker_conflicting_packages:
+  - docker.io
+  - docker-doc
+  - docker-compose
+  - podman-docker
+  - containerd
+  - runc
+
+# Docker packages to install from the official repository
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Users to add to the docker group for rootless container management
+docker_users:
+  - "{{ ansible_user }}"
+
+# Architecture mapping from ansible_architecture to Docker's expected arch string
+# (aarch64 → arm64, x86_64 → amd64)
+docker_arch_map:
+  aarch64: arm64
+  x86_64: amd64
+  armv7l: armhf
