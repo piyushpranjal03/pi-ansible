@@ -2,6 +2,9 @@
 - name: Provision system
   hosts: all
 
+  vars_files:
+    - ../group_vars/provision.yml
+
   tasks:
     # ──────────────────────────────────────────────
     # Section: System Updates (tag: packages)
@@ -31,3 +34,14 @@
       ansible.builtin.apt:
         autoclean: yes
       tags: [packages]
+
+    # ──────────────────────────────────────────────
+    # Section: Essential Software (tag: essentials)
+    # ──────────────────────────────────────────────
+
+    # Install the configurable list of essential utility packages
+    - name: Install essential packages
+      ansible.builtin.apt:
+        name: "{{ essential_packages }}"
+        state: present
+      tags: [essentials]

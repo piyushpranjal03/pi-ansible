@@ -1,0 +1,8 @@
+---
+# Variables specific to the provision playbook
+
+# ── Essential Packages ──
+essential_packages:
+  - vim
+  - curl
+  - btop
