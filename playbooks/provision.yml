@@ -45,3 +45,60 @@
         name: "{{ essential_packages }}"
         state: present
       tags: [essentials]
+
+    # ──────────────────────────────────────────────
+    # Section: Automatic Security Updates (tag: upgrades)
+    # ──────────────────────────────────────────────
+
+    # Install the packages needed for automatic security updates
+    - name: Install unattended-upgrades packages
+      ansible.builtin.apt:
+        name:
+          - unattended-upgrades
+          - apt-listchanges
+        state: present
+      tags: [upgrades]
+
+    # Configure how often apt runs automatic updates, downloads, and cache cleanup
+    - name: Configure automatic update intervals
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        content: |
+          APT::Periodic::Update-Package-Lists "{{ unattended_update_interval }}";
+          APT::Periodic::Download-Upgradeable-Packages "{{ unattended_download_interval }}";
+          APT::Periodic::AutocleanInterval "{{ unattended_autoclean_interval }}";
+          APT::Periodic::Unattended-Upgrade "1";
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [upgrades]
+
+    # Configure which updates to install automatically, reboot policy, and notifications
+    - name: Configure unattended-upgrades policy
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        content: |
+          Unattended-Upgrade::Allowed-Origins {
+              "${distro_id}:${distro_codename}";
+              "${distro_id}:${distro_codename}-security";
+              "${distro_id}ESMApps:${distro_codename}-apps-security";
+              "${distro_id}ESM:${distro_codename}-infra-security";
+          };
+
+          Unattended-Upgrade::Package-Blacklist {
+          };
+
+          Unattended-Upgrade::Automatic-Reboot "{{ unattended_auto_reboot | lower }}";
+          Unattended-Upgrade::Automatic-Reboot-Time "{{ unattended_auto_reboot_time }}";
+          Unattended-Upgrade::Remove-Unused-Dependencies "{{ unattended_remove_unused_deps | lower }}";
+          {% if unattended_syslog_enable %}
+          Unattended-Upgrade::SyslogEnable "true";
+          Unattended-Upgrade::SyslogFacility "{{ unattended_syslog_facility }}";
+          {% endif %}
+          {% if unattended_verbose %}
+          Unattended-Upgrade::Verbose "true";
+          {% endif %}
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [upgrades]

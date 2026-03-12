@@ -1,8 +1,42 @@
 ---
 # Variables specific to the provision playbook
 
-# ── Essential Packages ──
+# ──────────────────────────────────────────────
+# Section: Essential Software (tag: essentials)
+# ──────────────────────────────────────────────
+
 essential_packages:
   - vim
   - curl
   - btop
+
+# ──────────────────────────────────────────────
+# Section: Automatic Security Updates (tag: upgrades)
+# ──────────────────────────────────────────────
+
+# How often (in days) to refresh the package list
+unattended_update_interval: "1"
+
+# How often (in days) to download upgradeable packages
+unattended_download_interval: "1"
+
+# How often (in days) to purge old downloaded packages from the cache
+unattended_autoclean_interval: "7"
+
+# Whether to automatically reboot after updates that require it
+unattended_auto_reboot: false
+
+# Time of day to reboot if auto-reboot is enabled (uses target host's local timezone)
+unattended_auto_reboot_time: "02:00"
+
+# Remove packages that were automatically installed and are no longer needed after upgrades
+unattended_remove_unused_deps: true
+
+# Send unattended-upgrades output to syslog (journald) — useful for log aggregation with Loki/Grafana
+unattended_syslog_enable: true
+
+# Syslog facility to use when syslog is enabled (e.g., "daemon", "local0")
+unattended_syslog_facility: "daemon"
+
+# Enable verbose logging for more detailed output in logs
+unattended_verbose: false
