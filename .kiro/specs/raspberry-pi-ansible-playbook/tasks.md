@@ -55,3 +55,26 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Add variables to `group_vars/provision.yml`: `docker_conflicting_packages`, `docker_packages`, `docker_users`, `docker_arch_map`
     - Tag all tasks with `[docker]`
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 8.2_
+
+- [ ] 4. Implement Hardware Watchdog section (tag: watchdog)
+  - [ ] 4.1 Add hardware watchdog tasks to `provision.yml`
+    - Enable hardware watchdog in boot config (`dtparam=watchdog=on`)
+    - Detect config.txt path (Bookworm+ vs older Pi OS)
+    - Install `watchdog` package
+    - Deploy `/etc/watchdog.conf` with configurable settings (device, timeout, load, memory, temperature, interval)
+    - Enable and start `watchdog` systemd service
+    - Add variables to `group_vars/provision.yml`: `watchdog_timeout`, `watchdog_max_load`, `watchdog_min_memory`, `watchdog_max_temperature`, `watchdog_interval`
+    - Tag all tasks with `[watchdog]`
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+
+## Future Tasks (separate playbooks)
+
+- [ ] Enable persistent journald logging (`Storage=persistent` in `/etc/systemd/journald.conf`) — needed so logs survive reboots for watchdog, unattended-upgrades, and all other services
+- [ ] Set up Grafana + Loki + Promtail/Alloy stack for centralized log aggregation
+  - Ship journald logs (watchdog, unattended-upgrades, Docker, system) to Loki
+  - Grafana dashboards for log visualization and search
+  - Grafana alerting rules for notifications (Slack, Telegram, ntfy, etc.) on upgrade events, watchdog triggers, errors
+- [ ] Set up Prometheus + Node Exporter for system metrics
+  - CPU load, memory, temperature, disk usage
+  - Grafana dashboards for metrics visualization
+  - Alert rules for early warnings before watchdog thresholds are hit

@@ -216,3 +216,71 @@
       ansible.builtin.debug:
         msg: "Docker installed: {{ docker_version.stdout }}"
       tags: [docker]
+
+    # ──────────────────────────────────────────────
+    # Section: Hardware Watchdog (tag: watchdog)
+    # ──────────────────────────────────────────────
+
+    # Detect config.txt location (differs between Pi OS versions)
+    # Newer Pi OS (Bookworm+) uses /boot/firmware/config.txt, older uses /boot/config.txt
+    - name: Check config.txt location
+      ansible.builtin.stat:
+        path: /boot/firmware/config.txt
+      register: firmware_config
+      tags: [watchdog]
+
+    - name: Set config.txt path
+      ansible.builtin.set_fact:
+        config_txt_path: "{{ '/boot/firmware/config.txt' if firmware_config.stat.exists else '/boot/config.txt' }}"
+      tags: [watchdog]
+
+    # Enable the bcm2835_wdt hardware watchdog module at boot
+    # Without this, /dev/watchdog won't exist and the watchdog daemon has nothing to kick
+    - name: Enable hardware watchdog in boot config
+      ansible.builtin.lineinfile:
+        path: "{{ config_txt_path }}"
+        regexp: '^#?dtparam=watchdog'
+        line: 'dtparam=watchdog=on'
+      register: watchdog_boot_config
+      tags: [watchdog]
+
+    # Install the userspace watchdog daemon that kicks the hardware watchdog
+    - name: Install watchdog package
+      ansible.builtin.apt:
+        name: watchdog
+        state: present
+      tags: [watchdog]
+
+    # Deploy watchdog configuration with health monitoring thresholds
+    - name: Configure watchdog daemon
+      ansible.builtin.copy:
+        dest: /etc/watchdog.conf
+        content: |
+          # Hardware watchdog device
+          watchdog-device = /dev/watchdog
+          watchdog-timeout = {{ watchdog_timeout }}
+
+          # How often to kick the watchdog (must be less than timeout)
+          interval = {{ watchdog_interval }}
+
+          # System health monitoring thresholds
+          max-load-1 = {{ watchdog_max_load }}
+          min-memory = {{ watchdog_min_memory }}
+          max-temperature = {{ watchdog_max_temperature }}
+          temperature-sensor = /sys/class/thermal/thermal_zone0/temp
+
+          # Run as realtime process so it doesn't get starved by runaway processes
+          realtime = yes
+          priority = 1
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [watchdog]
+
+    # Ensure the watchdog daemon starts on boot and is currently running
+    - name: Start and enable watchdog service
+      ansible.builtin.systemd:
+        name: watchdog
+        state: started
+        enabled: yes
+      tags: [watchdog]

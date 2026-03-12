@@ -72,3 +72,22 @@ docker_arch_map:
   aarch64: arm64
   x86_64: amd64
   armv7l: armhf
+
+# ──────────────────────────────────────────────
+# Section: Hardware Watchdog (tag: watchdog)
+# ──────────────────────────────────────────────
+
+# Seconds before hardware reboot if watchdog isn't kicked (Pi max is 15)
+watchdog_timeout: 15
+
+# Reboot if 1-minute load average exceeds this value
+watchdog_max_load: 24
+
+# Reboot if free memory drops below this many pages (1 page = 4KB, 2560 pages = 10MB)
+watchdog_min_memory: 2560
+
+# Reboot if CPU temperature exceeds this value in Celsius (Pi throttles at 80-85)
+watchdog_max_temperature: 85
+
+# How often (in seconds) the daemon kicks the watchdog device — must be less than timeout
+watchdog_interval: 1
