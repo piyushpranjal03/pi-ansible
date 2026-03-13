@@ -122,3 +122,16 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - 10-minute video export windows via Frigate API
     - S3 upload with Glacier Instant Retrieval storage class
     - Stuck export recovery, internet connectivity checks, retry logic
+
+- [x] 9. Add Frigate memory monitor sidecar
+  - [x] 9.1 Create `frigate/scripts/memory-monitor.sh`
+    - Shell-based memory watchdog that polls `docker stats` at a configurable interval
+    - Restarts frigate container when memory usage exceeds threshold (default 80%)
+    - Logs to `/app/logs/memory-monitor.log` and stdout (Docker logs)
+    - Configurable via `MEMORY_THRESHOLD` and `CHECK_INTERVAL` environment variables
+    - Error handling for missing container stats
+  - [x] 9.2 Add `frigate-memory-monitor` sidecar to `frigate/docker-compose.yml`
+    - Uses lightweight `docker:cli` image (~15MB)
+    - Docker socket mounted read-only for stats and restart access
+    - Resource limits: 64MB memory, 0.25 CPU
+    - Added descriptive comments to all three services

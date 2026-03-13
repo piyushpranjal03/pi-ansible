@@ -1,4 +1,5 @@
 services:
+  # Frigate NVR — real-time camera monitoring with hardware-accelerated video processing
   frigate:
     shm_size: "250mb"
     container_name: frigate
@@ -26,6 +27,27 @@ services:
       # Non protected endpoint. Can be used for password reset or API calls
       - "5000:5000"
 
+  # Memory watchdog — monitors frigate's memory usage and restarts it if it exceeds the threshold
+  frigate-memory-monitor:
+    container_name: frigate-memory-monitor
+    restart: unless-stopped
+    image: docker:cli
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: '0.25'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scripts:/app/scripts:ro
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - MEMORY_THRESHOLD=80
+      - CHECK_INTERVAL=60
+    command: sh /app/scripts/memory-monitor.sh
+    depends_on:
+      - frigate
+
+  # Video export — exports 10-minute recording clips to S3 (Glacier Instant Retrieval) on a schedule
   frigate-video-export:
     container_name: frigate-video-export
     restart: unless-stopped
