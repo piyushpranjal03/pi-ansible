@@ -78,3 +78,14 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Add variables to `group_vars/provision.yml`: `journald_storage`, `journald_max_use`, `journald_max_retention`
     - Tag all tasks with `[logging]`
     - _Requirements: 9.1_
+
+- [x] 6. Implement System Hardening section (tag: hardening)
+  - [x] 6.1 Add SSH hardening tasks to `provision.yml`
+    - Disable root login (`PermitRootLogin no`) — closes Pi OS default that allows root key-based login
+    - Disable password authentication (`PasswordAuthentication no`) — forces SSH key-only auth
+    - Set max auth tries (`MaxAuthTries 3`) — limits per-connection attempts, slows brute-force
+    - Disable empty passwords (`PermitEmptyPasswords no`)
+    - Restart SSH service via handler if config changes (runs once even if multiple settings change)
+    - Add variables to `group_vars/provision.yml`: `ssh_permit_root_login`, `ssh_password_authentication`, `ssh_max_auth_tries`
+    - Tag all tasks with `[hardening]`
+    - _Requirements: 9.2, 9.3_

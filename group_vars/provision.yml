@@ -105,3 +105,16 @@ journald_max_use: "1G"
 
 # Delete logs older than this duration (e.g., "30d", "1week", "6month")
 journald_max_retention: "30d"
+
+# ──────────────────────────────────────────────
+# Section: System Hardening — SSH (tag: hardening)
+# ──────────────────────────────────────────────
+
+# Block root from logging in via SSH entirely — even with keys
+ssh_permit_root_login: "no"
+
+# Force SSH key-only authentication — passwords can be brute-forced, keys can't
+ssh_password_authentication: "no"
+
+# Max failed auth attempts per connection before disconnecting
+ssh_max_auth_tries: 3

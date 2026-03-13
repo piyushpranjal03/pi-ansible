@@ -13,6 +13,11 @@
         name: systemd-journald
         state: restarted
 
+    - name: restart sshd
+      ansible.builtin.systemd:
+        name: ssh
+        state: restarted
+
   tasks:
     # ──────────────────────────────────────────────
     # Section: System Updates (tag: packages)
@@ -324,3 +329,42 @@
         line: 'MaxRetentionSec={{ journald_max_retention }}'
       notify: restart journald
       tags: [logging]
+
+    # ──────────────────────────────────────────────
+    # Section: System Hardening — SSH (tag: hardening)
+    # ──────────────────────────────────────────────
+
+    # Lock down SSH to prevent common attack vectors.
+    # Pi OS allows root key-based login by default — we close that gap entirely.
+
+    - name: Disable root login via SSH
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin {{ ssh_permit_root_login }}'
+      notify: restart sshd
+      tags: [hardening]
+
+    - name: Disable password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication {{ ssh_password_authentication }}'
+      notify: restart sshd
+      tags: [hardening]
+
+    - name: Set max authentication tries
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?MaxAuthTries'
+        line: 'MaxAuthTries {{ ssh_max_auth_tries }}'
+      notify: restart sshd
+      tags: [hardening]
+
+    - name: Disable empty passwords
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitEmptyPasswords'
+        line: 'PermitEmptyPasswords no'
+      notify: restart sshd
+      tags: [hardening]
