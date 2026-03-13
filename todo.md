@@ -2,33 +2,9 @@
 
 ## Provision Playbook Tasks
 
-- [ ] Configure persistent journald logging (tag: logging)
-  - Set `Storage=persistent` in `/etc/systemd/journald.conf`
-  - Configure `SystemMaxUse=200M` to cap log size on SD card
-  - Configure `MaxRetentionSec=30d` for log retention
-  - Needed so logs survive reboots for watchdog, unattended-upgrades, and all other services
-
-- [ ] System Hardening — SSH (tag: hardening)
-  - Disable root login (`PermitRootLogin no`)
-  - Disable password authentication (`PasswordAuthentication no`)
-  - Set max auth tries (`MaxAuthTries 3`)
-  - Disable empty passwords
-  - Restart SSH service if config changes
-  - Variables: `ssh_permit_root_login`, `ssh_password_authentication`, `ssh_max_auth_tries`
-
-- [ ] System Hardening — Firewall / UFW (tag: hardening)
-  - Install and enable `ufw`
-  - Default policy: deny incoming, allow outgoing
-  - Allow SSH (port 22)
-  - Allow configurable list of additional ports for container services on local network
-  - Variables: `firewall_allowed_ports`
-
-- [ ] System Hardening — Logging (tag: hardening)
-  - Ensure `rsyslog` is installed and running
-
-- [ ] Conditional Reboot section (tag: reboot)
-  - Check `/var/run/reboot-required` and registered change flags (boot config, cmdline, watchdog)
-  - Reboot if needed, wait for reconnection with configurable timeout
+- [x] Configure persistent journald logging (tag: logging)
+- [x] System Hardening — SSH (tag: hardening)
+- [x] Conditional Reboot section (tag: reboot)
 
 ## Future Playbooks
 

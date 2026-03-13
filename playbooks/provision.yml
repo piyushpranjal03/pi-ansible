@@ -368,3 +368,26 @@
         line: 'PermitEmptyPasswords no'
       notify: restart sshd
       tags: [hardening]
+
+    # ──────────────────────────────────────────────
+    # Section: Conditional Reboot (tag: reboot)
+    # ──────────────────────────────────────────────
+
+    # Placed at the very end so all configuration is applied before deciding whether to reboot.
+    # Checks both the system-level reboot indicator (set by kernel/package updates)
+    # and any registered change flags from earlier sections (boot config, cmdline).
+
+    - name: Check if reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+      tags: [reboot]
+
+    - name: Reboot if required
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ reboot_timeout }}"
+      when: >
+        reboot_required_file.stat.exists
+        or (watchdog_boot_config is defined and watchdog_boot_config.changed)
+        or (cmdline_updated is defined and cmdline_updated.changed)
+      tags: [reboot]

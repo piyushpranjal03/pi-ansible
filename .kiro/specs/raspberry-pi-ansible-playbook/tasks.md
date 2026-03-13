@@ -89,3 +89,13 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Add variables to `group_vars/provision.yml`: `ssh_permit_root_login`, `ssh_password_authentication`, `ssh_max_auth_tries`
     - Tag all tasks with `[hardening]`
     - _Requirements: 9.2, 9.3_
+
+- [x] 7. Implement Conditional Reboot section (tag: reboot)
+  - [x] 7.1 Add conditional reboot tasks to `provision.yml`
+    - Check `/var/run/reboot-required` for system-level reboot indicator
+    - Check registered change flags from earlier sections (`watchdog_boot_config`, `cmdline_updated`)
+    - Reboot only if any condition is met, wait for reconnection using `reboot_timeout` from `group_vars/all.yml` (120s)
+    - Use `is defined` guards so running `--tags reboot` alone won't fail on undefined variables
+    - Skip reboot without error if no condition is met
+    - Tag all tasks with `[reboot]`
+    - _Requirements: 7.1, 7.2, 7.3_
