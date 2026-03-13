@@ -13,9 +13,11 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── frigate.yml              # Variables for the frigate playbook
 │   ├── calibre-web.yml          # Variables for the calibre-web playbook
 │   ├── netbird.yml              # Variables for the netbird playbook
-│   └── dockmon.yml              # Variables for the dockmon playbook
+│   ├── dockmon.yml              # Variables for the dockmon playbook
+│   └── restic.yml               # Variables for the restic backup playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
+│   ├── restic.yml               # Restic backup setup playbook
 │   ├── frigate.yml              # Frigate NVR deployment playbook
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
@@ -38,6 +40,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 - Ansible installed on your control machine
 - SSH key-based access to the Pi (`~/.ssh/id_rsa` by default)
 - Pi running Debian-based OS (Pi OS Bookworm+ recommended)
+- AWS IAM user with appropriate permissions (see [AWS IAM Setup](#aws-iam-setup) below)
 
 ## Inventory Setup
 
@@ -80,6 +83,21 @@ Run specific sections using tags:
 ```bash
 ansible-playbook playbooks/provision.yml --tags "docker,watchdog"
 ```
+
+### Restic Backup (`playbooks/restic.yml`)
+
+Installs Restic and initializes an encrypted S3 backup repository. Run this once after provision — service playbooks use the credentials it sets up for per-service backup and restore.
+
+```bash
+ansible-playbook playbooks/restic.yml
+```
+
+You'll be prompted for:
+- Restic repository password (encrypts all backups)
+- AWS Access Key ID and Secret Access Key
+- S3 bucket name
+
+The playbook writes credentials to `/etc/restic/` (root-only access) so automated backup timers can run without human input.
 
 ### Frigate NVR (`playbooks/frigate.yml`)
 
@@ -141,6 +159,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/dockmon.yml` — Dockmon deployment directory
+- `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 
 ## Notes
@@ -148,3 +167,59 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - The provision playbook is designed for a Pi on a local network — no UFW or fail2ban (Docker bypasses iptables-based firewalls anyway)
 - SSH hardening disables root login and password auth — make sure you have a non-root user with SSH key access before running
 - The conditional reboot section uses `is defined` guards so individual tags can be run safely without triggering unrelated reboots
+
+## AWS IAM Setup
+
+The Frigate video export and Restic backup playbooks require AWS credentials. Create a dedicated IAM user with the minimum permissions needed.
+
+### IAM Policy for Restic Backups
+
+Restic needs to read, write, list, and delete objects in the backup prefix of your S3 bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::YOUR_BUCKET_NAME",
+        "arn:aws:s3:::YOUR_BUCKET_NAME/restic/*"
+      ]
+    }
+  ]
+}
+```
+
+### IAM Policy for Frigate Video Export
+
+The video export sidecar uploads recordings to S3 with Glacier Instant Retrieval storage class:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::YOUR_BUCKET_NAME",
+        "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+      ]
+    }
+  ]
+}
+```
+
+If using a single IAM user for both, combine the policies. Replace `YOUR_BUCKET_NAME` with your actual S3 bucket name.

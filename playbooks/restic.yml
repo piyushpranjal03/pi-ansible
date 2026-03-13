@@ -1,0 +1,122 @@
+---
+- name: Setup Restic Backup
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../group_vars/restic.yml
+
+  vars_prompt:
+    - name: restic_repo_password
+      prompt: "Enter Restic repository password (used to encrypt backups)"
+      default: ""
+      private: yes
+    - name: restic_aws_access_key
+      prompt: "Enter AWS Access Key ID for Restic backups"
+      default: ""
+      private: yes
+    - name: restic_aws_secret_key
+      prompt: "Enter AWS Secret Access Key for Restic backups"
+      default: ""
+      private: yes
+    - name: restic_s3_bucket
+      prompt: "Enter S3 bucket name for Restic backups"
+      default: ""
+      private: no
+
+  pre_tasks:
+    - name: Validate Restic credentials
+      ansible.builtin.fail:
+        msg: "All credentials are required: repo password, AWS access key, AWS secret key, and S3 bucket name."
+      when: >
+        restic_repo_password == ""
+        or restic_aws_access_key == ""
+        or restic_aws_secret_key == ""
+        or restic_s3_bucket == ""
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: Restic Installation
+    # ──────────────────────────────────────────────
+
+    # Install Restic — a fast, encrypted, deduplicated backup tool
+    - name: Install Restic
+      ansible.builtin.apt:
+        name: restic
+        state: present
+
+    # Update Restic to the latest version (apt version can lag behind)
+    - name: Update Restic to latest version
+      ansible.builtin.command: restic self-update
+      register: restic_update
+      changed_when: "'successfully updated' in restic_update.stdout"
+      failed_when: false
+
+    # ──────────────────────────────────────────────
+    # Section: Restic Configuration
+    # ──────────────────────────────────────────────
+
+    # Create directory for Restic configuration and password file
+    - name: Create Restic config directory
+      ansible.builtin.file:
+        path: /etc/restic
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    # Store the repo password in a file so automated backups can run without human input
+    # Restricted to root only (0600) since it decrypts all backups
+    - name: Write Restic password file
+      ansible.builtin.copy:
+        content: "{{ restic_repo_password }}"
+        dest: /etc/restic/password
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    # Store S3 credentials as an environment file for systemd backup timers
+    # Service playbooks source this file for backup/restore commands
+    - name: Write Restic environment file
+      ansible.builtin.copy:
+        content: |
+          AWS_ACCESS_KEY_ID={{ restic_aws_access_key }}
+          AWS_SECRET_ACCESS_KEY={{ restic_aws_secret_key }}
+          RESTIC_REPOSITORY=s3:s3.{{ restic_aws_region }}.amazonaws.com/{{ restic_s3_bucket }}/restic
+          RESTIC_PASSWORD_FILE=/etc/restic/password
+        dest: /etc/restic/env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    # ──────────────────────────────────────────────
+    # Section: Repository Initialization
+    # ──────────────────────────────────────────────
+
+    # Check if the S3 repo already exists (skip init if so)
+    - name: Check if Restic repo is already initialized
+      ansible.builtin.shell: |
+        export AWS_ACCESS_KEY_ID={{ restic_aws_access_key }}
+        export AWS_SECRET_ACCESS_KEY={{ restic_aws_secret_key }}
+        restic -r s3:s3.{{ restic_aws_region }}.amazonaws.com/{{ restic_s3_bucket }}/restic \
+          --password-file /etc/restic/password snapshots
+      register: restic_repo_check
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    # Initialize the encrypted S3 repo (one-time setup)
+    - name: Initialize Restic repository
+      ansible.builtin.shell: |
+        export AWS_ACCESS_KEY_ID={{ restic_aws_access_key }}
+        export AWS_SECRET_ACCESS_KEY={{ restic_aws_secret_key }}
+        restic -r s3:s3.{{ restic_aws_region }}.amazonaws.com/{{ restic_s3_bucket }}/restic \
+          --password-file /etc/restic/password init
+      when: restic_repo_check.rc != 0
+      no_log: true
+
+    - name: Display Restic setup status
+      ansible.builtin.debug:
+        msg: "Restic is installed and repository is initialized. Service playbooks can now use /etc/restic/env for backup/restore."

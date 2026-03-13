@@ -169,3 +169,14 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - `dockmon_dir` — target directory on host (`/opt/dockmon`)
   - [x] 12.3 Create `dockmon/docker-compose.yml` with service definition
     - Dockmon container with 256MB memory, 0.5 CPU, Docker socket (read-only), healthcheck
+
+- [x] 13. Create Restic backup setup playbook
+  - [x] 13.1 Create `playbooks/restic.yml` with installation and repo initialization
+    - `vars_prompt` for repo password, AWS credentials, and S3 bucket with validation
+    - Install Restic via apt, self-update to latest version
+    - Create `/etc/restic/` config directory (mode `0700`)
+    - Write password file and environment file (mode `0600`, `no_log: true`)
+    - Check if S3 repo exists, initialize if not (one-time setup)
+    - Service playbooks source `/etc/restic/env` for backup/restore commands
+  - [x] 13.2 Create `group_vars/restic.yml` with backup variables
+    - `restic_aws_region` — AWS region for S3 bucket

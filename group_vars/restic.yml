@@ -1,0 +1,9 @@
+---
+# Variables specific to the restic backup playbook
+
+# ──────────────────────────────────────────────
+# Section: Restic Backup Setup
+# ──────────────────────────────────────────────
+
+# AWS region for the S3 backup bucket
+restic_aws_region: "ap-south-1"
