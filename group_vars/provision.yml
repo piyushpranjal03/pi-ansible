@@ -91,3 +91,17 @@ watchdog_max_temperature: 85
 
 # How often (in seconds) the daemon kicks the watchdog device — must be less than timeout
 watchdog_interval: 1
+
+# ──────────────────────────────────────────────
+# Section: Persistent Journald Logging (tag: logging)
+# ──────────────────────────────────────────────
+
+# Where to store journal logs: "persistent" writes to /var/log/journal/ (survives reboots),
+# "volatile" keeps logs in memory only, "auto" persists only if /var/log/journal/ already exists
+journald_storage: "persistent"
+
+# Max disk space for persistent logs — keep this reasonable on SD cards to limit write wear
+journald_max_use: "1G"
+
+# Delete logs older than this duration (e.g., "30d", "1week", "6month")
+journald_max_retention: "30d"

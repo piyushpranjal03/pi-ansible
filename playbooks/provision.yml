@@ -5,6 +5,14 @@
   vars_files:
     - ../group_vars/provision.yml
 
+  handlers:
+    # Handlers only run when notified by a task that made a change.
+    # Even if multiple tasks notify the same handler, it runs only once at the end of the play.
+    - name: restart journald
+      ansible.builtin.systemd:
+        name: systemd-journald
+        state: restarted
+
   tasks:
     # ──────────────────────────────────────────────
     # Section: System Updates (tag: packages)
@@ -284,3 +292,35 @@
         state: started
         enabled: yes
       tags: [watchdog]
+
+    # ──────────────────────────────────────────────
+    # Section: Persistent Journald Logging (tag: logging)
+    # ──────────────────────────────────────────────
+
+    # By default Pi OS stores journal logs in memory (tmpfs) — they're lost on every reboot.
+    # This section enables persistent storage so we can review logs from previous boots
+    # (watchdog reboots, unattended-upgrade failures, Docker crashes, etc.)
+
+    - name: Configure journald storage mode
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?Storage='
+        line: 'Storage={{ journald_storage }}'
+      notify: restart journald
+      tags: [logging]
+
+    - name: Configure journald max disk usage
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?SystemMaxUse='
+        line: 'SystemMaxUse={{ journald_max_use }}'
+      notify: restart journald
+      tags: [logging]
+
+    - name: Configure journald log retention
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/journald.conf
+        regexp: '^#?MaxRetentionSec='
+        line: 'MaxRetentionSec={{ journald_max_retention }}'
+      notify: restart journald
+      tags: [logging]
