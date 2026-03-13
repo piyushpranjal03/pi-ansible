@@ -1,0 +1,24 @@
+services:
+  # Dockmon — Docker container monitoring dashboard
+  dockmon:
+    image: darthnorse/dockmon:latest
+    container_name: dockmon
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: '0.5'
+    ports:
+      - "8001:443"
+    environment:
+      - TZ=Asia/Kolkata
+    volumes:
+      - dockmon_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:443/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  dockmon_data:

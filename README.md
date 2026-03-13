@@ -12,12 +12,14 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── provision.yml            # Variables for the provision playbook
 │   ├── frigate.yml              # Variables for the frigate playbook
 │   ├── calibre-web.yml          # Variables for the calibre-web playbook
-│   └── netbird.yml              # Variables for the netbird playbook
+│   ├── netbird.yml              # Variables for the netbird playbook
+│   └── dockmon.yml              # Variables for the dockmon playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
 │   ├── frigate.yml              # Frigate NVR deployment playbook
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
-│   └── netbird.yml              # NetBird installation playbook
+│   ├── netbird.yml              # NetBird installation playbook
+│   └── dockmon.yml              # Dockmon deployment playbook
 ├── frigate/
 │   ├── docker-compose.yml       # Frigate container services
 │   ├── config.yml               # Frigate NVR configuration
@@ -26,6 +28,8 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │       └── memory-monitor.sh    # Frigate memory watchdog script
 └── calibre-web/
     └── docker-compose.yml       # Calibre-Web Automated container service
+├── dockmon/
+│   └── docker-compose.yml       # Dockmon container service
 ```
 
 ## Prerequisites
@@ -117,6 +121,16 @@ ansible-playbook playbooks/netbird.yml
 
 You'll be prompted for a setup key (generate one from the [NetBird dashboard](https://app.netbird.io)). The playbook skips registration if the peer is already connected, so re-runs are safe.
 
+### Dockmon (`playbooks/dockmon.yml`)
+
+Deploys Dockmon — a Docker container monitoring dashboard.
+
+```bash
+ansible-playbook playbooks/dockmon.yml
+```
+
+Accessible at `https://<pi-ip>:8001` after deployment.
+
 ## Configuration
 
 All variables are in `group_vars/` with descriptive comments. Key files:
@@ -125,6 +139,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/frigate.yml` — Frigate deployment directory, AWS region
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
+- `group_vars/dockmon.yml` — Dockmon deployment directory
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 
 ## Notes

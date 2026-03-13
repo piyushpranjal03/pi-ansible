@@ -161,3 +161,11 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
   - [x] 11.2 Create `group_vars/netbird.yml` with installation variables
     - `netbird_repo_url` — apt repository URL
     - `netbird_gpg_url` — GPG key URL
+
+- [x] 12. Create Dockmon deployment playbook
+  - [x] 12.1 Create `playbooks/dockmon.yml` with deployment tasks
+    - Directory setup, deploy docker-compose, pull and start container, prune dangling images
+  - [x] 12.2 Create `group_vars/dockmon.yml` with deployment variables
+    - `dockmon_dir` — target directory on host (`/opt/dockmon`)
+  - [x] 12.3 Create `dockmon/docker-compose.yml` with service definition
+    - Dockmon container with 256MB memory, 0.5 CPU, Docker socket (read-only), healthcheck

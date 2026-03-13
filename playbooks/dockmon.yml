@@ -1,0 +1,48 @@
+---
+- name: Deploy Dockmon
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../group_vars/dockmon.yml
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: Directory Setup
+    # ──────────────────────────────────────────────
+
+    - name: Create dockmon directory
+      ansible.builtin.file:
+        path: "{{ dockmon_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    # ──────────────────────────────────────────────
+    # Section: Deploy Configuration Files
+    # ──────────────────────────────────────────────
+
+    - name: Copy docker-compose file
+      ansible.builtin.copy:
+        src: ../dockmon/docker-compose.yml
+        dest: "{{ dockmon_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    # ──────────────────────────────────────────────
+    # Section: Container Management
+    # ──────────────────────────────────────────────
+
+    - name: Pull latest images and start Dockmon container
+      community.docker.docker_compose_v2:
+        project_src: "{{ dockmon_dir }}"
+        pull: always
+        state: present
+
+    - name: Clean up dangling Docker images
+      community.docker.docker_prune:
+        images: yes
+        images_filters:
+          dangling: true

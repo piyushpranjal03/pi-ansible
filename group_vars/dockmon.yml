@@ -1,0 +1,9 @@
+---
+# Variables specific to the dockmon playbook
+
+# ──────────────────────────────────────────────
+# Section: Dockmon Deployment
+# ──────────────────────────────────────────────
+
+# Directory on the target host where dockmon files are deployed
+dockmon_dir: "/opt/dockmon"
