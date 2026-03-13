@@ -1,0 +1,124 @@
+---
+- name: Deploy Frigate NVR
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../group_vars/frigate.yml
+
+  vars_prompt:
+    - name: frigate_cam_username
+      prompt: "Enter camera username for Frigate"
+      default: ""
+      private: no
+    - name: frigate_cam_password
+      prompt: "Enter camera password for Frigate"
+      default: ""
+      private: yes
+    - name: aws_access_key_id
+      prompt: "Enter AWS Access Key ID"
+      default: ""
+      private: yes
+    - name: aws_secret_access_key
+      prompt: "Enter AWS Secret Access Key"
+      default: ""
+      private: yes
+    - name: s3_bucket
+      prompt: "Enter S3 bucket name"
+      default: ""
+      private: no
+
+  pre_tasks:
+    # Fail early with a clear message instead of silently skipping all tasks
+    - name: Validate required credentials
+      ansible.builtin.fail:
+        msg: "All credentials are required. Re-run the playbook and provide: camera username, camera password, AWS access key, AWS secret key, and S3 bucket name."
+      when: >
+        frigate_cam_username == ""
+        or frigate_cam_password == ""
+        or aws_access_key_id == ""
+        or aws_secret_access_key == ""
+        or s3_bucket == ""
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: Directory Setup
+    # ──────────────────────────────────────────────
+
+    - name: Create frigate directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ frigate_dir }}"
+        - "{{ frigate_dir }}/config"
+        - "{{ frigate_dir }}/logs"
+        - "{{ frigate_dir }}/scripts"
+
+    # ──────────────────────────────────────────────
+    # Section: Deploy Configuration Files
+    # ──────────────────────────────────────────────
+
+    - name: Copy frigate config file
+      ansible.builtin.copy:
+        src: ../frigate/config.yml
+        dest: "{{ frigate_dir }}/config/config.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy docker-compose file
+      ansible.builtin.copy:
+        src: ../frigate/docker-compose.yml
+        dest: "{{ frigate_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy scripts directory
+      ansible.builtin.copy:
+        src: ../frigate/scripts/
+        dest: "{{ frigate_dir }}/scripts/"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    # ──────────────────────────────────────────────
+    # Section: Environment and Secrets
+    # ──────────────────────────────────────────────
+
+    # .env file with restricted permissions (0600) since it contains secrets
+    - name: Create Frigate .env file
+      ansible.builtin.copy:
+        content: |
+          FRIGATE_CAM_USERNAME={{ frigate_cam_username }}
+          FRIGATE_CAM_PASSWORD={{ frigate_cam_password }}
+          AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
+          S3_BUCKET={{ s3_bucket }}
+          AWS_REGION={{ aws_region }}
+        dest: "{{ frigate_dir }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      no_log: true
+
+    # ──────────────────────────────────────────────
+    # Section: Container Management
+    # ──────────────────────────────────────────────
+
+    - name: Pull latest images and recreate Frigate containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ frigate_dir }}"
+        pull: always
+        recreate: always
+        state: present
+
+    - name: Clean up dangling Docker images
+      community.docker.docker_prune:
+        images: yes
+        images_filters:
+          dangling: true

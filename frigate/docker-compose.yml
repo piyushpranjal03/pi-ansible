@@ -1,0 +1,46 @@
+services:
+  frigate:
+    shm_size: "250mb"
+    container_name: frigate
+    restart: unless-stopped
+    stop_grace_period: 10s
+    image: ghcr.io/blakeblackshear/frigate:0.16.4
+    mem_limit: 4g
+    env_file:
+      - .env
+    devices:
+      - /dev/video11:/dev/video11
+    volumes:
+      - ./config:/config
+      - ./storage:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      # This port is password protected and can be used to
+      - "443:8971"
+      # GoRTC streams WebRTC on this port, this is consumed by frigate for live
+      - "8554:8554"
+      # Non protected endpoint. Can be used for password reset or API calls
+      - "5000:5000"
+
+  frigate-video-export:
+    container_name: frigate-video-export
+    restart: unless-stopped
+    image: python:3.11-slim
+    working_dir: /app
+    mem_limit: 500m
+    memswap_limit: 500m
+    cpus: '1.0'
+    env_file:
+      - .env
+    volumes:
+      - ./scripts:/app
+      - ./storage:/media/frigate:ro
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+    command: sh -c "pip install apscheduler boto3 requests pytz tenacity && python main.py"
+    depends_on:
+      - frigate

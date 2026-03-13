@@ -99,3 +99,26 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Skip reboot without error if no condition is met
     - Tag all tasks with `[reboot]`
     - _Requirements: 7.1, 7.2, 7.3_
+
+- [x] 8. Create Frigate NVR deployment playbook
+  - [x] 8.1 Create `playbooks/frigate.yml` with deployment tasks
+    - `vars_prompt` for 5 required credentials (camera username/password, AWS access key/secret, S3 bucket)
+    - `pre_tasks` validation to fail early if any credential is empty
+    - Directory setup: create frigate dir structure (`config`, `logs`, `scripts`)
+    - Deploy config files: `config.yml`, `docker-compose.yml`, `scripts/`
+    - Create `.env` file with secrets (mode `0600`, `no_log: true`)
+    - Pull and recreate containers via `community.docker.docker_compose_v2`
+    - Clean up dangling Docker images via `community.docker.docker_prune`
+  - [x] 8.2 Create `group_vars/frigate.yml` with deployment variables
+    - `frigate_dir` — target directory on host (`/opt/frigate`)
+    - `aws_region` — AWS region for S3 video export
+  - [x] 8.3 Create `frigate/docker-compose.yml` with service definitions
+    - Frigate NVR container (image `0.16.4`, 4GB memory, tmpfs cache, hardware device passthrough)
+    - Video export sidecar container (Python 3.11, 500MB memory, 1 CPU, APScheduler-based S3 upload)
+  - [x] 8.4 Create `frigate/config.yml` with camera and recording configuration
+    - go2rtc streams for two cameras (roadside, stairs) with RTSP and WebRTC
+    - Motion detection zones, review settings, 10-day recording retention
+  - [x] 8.5 Create `frigate/scripts/main.py` for automated video export
+    - 10-minute video export windows via Frigate API
+    - S3 upload with Glacier Instant Retrieval storage class
+    - Stuck export recovery, internet connectivity checks, retry logic

@@ -1,0 +1,12 @@
+---
+# Variables specific to the frigate playbook
+
+# ──────────────────────────────────────────────
+# Section: Frigate NVR Deployment
+# ──────────────────────────────────────────────
+
+# Directory on the target host where frigate files are deployed
+frigate_dir: "/opt/frigate"
+
+# AWS region for S3 video export
+aws_region: "ap-south-1"
