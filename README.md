@@ -20,16 +20,17 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
 │   └── dockmon.yml              # Dockmon deployment playbook
-├── frigate/
-│   ├── docker-compose.yml       # Frigate container services
-│   ├── config.yml               # Frigate NVR configuration
-│   └── scripts/
-│       ├── main.py              # Automated S3 video export script
-│       └── memory-monitor.sh    # Frigate memory watchdog script
-└── calibre-web/
-    └── docker-compose.yml       # Calibre-Web Automated container service
-├── dockmon/
-│   └── docker-compose.yml       # Dockmon container service
+├── services/
+│   ├── frigate/
+│   │   ├── docker-compose.yml   # Frigate container services
+│   │   ├── config.yml           # Frigate NVR configuration
+│   │   └── scripts/
+│   │       ├── main.py          # Automated S3 video export script
+│   │       └── memory-monitor.sh # Frigate memory watchdog script
+│   ├── calibre-web/
+│   │   └── docker-compose.yml   # Calibre-Web Automated container service
+│   └── dockmon/
+│       └── docker-compose.yml   # Dockmon container service
 ```
 
 ## Prerequisites

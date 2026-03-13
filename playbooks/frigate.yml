@@ -64,7 +64,7 @@
 
     - name: Copy frigate config file
       ansible.builtin.copy:
-        src: ../frigate/config.yml
+        src: ../services/frigate/config.yml
         dest: "{{ frigate_dir }}/config/config.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -72,7 +72,7 @@
 
     - name: Copy docker-compose file
       ansible.builtin.copy:
-        src: ../frigate/docker-compose.yml
+        src: ../services/frigate/docker-compose.yml
         dest: "{{ frigate_dir }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -80,7 +80,7 @@
 
     - name: Copy scripts directory
       ansible.builtin.copy:
-        src: ../frigate/scripts/
+        src: ../services/frigate/scripts/
         dest: "{{ frigate_dir }}/scripts/"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"

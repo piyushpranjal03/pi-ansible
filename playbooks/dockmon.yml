@@ -25,7 +25,7 @@
 
     - name: Copy docker-compose file
       ansible.builtin.copy:
-        src: ../dockmon/docker-compose.yml
+        src: ../services/dockmon/docker-compose.yml
         dest: "{{ dockmon_dir }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
