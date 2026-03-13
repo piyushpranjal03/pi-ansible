@@ -135,3 +135,17 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Docker socket mounted read-only for stats and restart access
     - Resource limits: 64MB memory, 0.25 CPU
     - Added descriptive comments to all three services
+
+- [x] 10. Create Calibre-Web Automated deployment playbook
+  - [x] 10.1 Create `playbooks/calibre-web.yml` with deployment tasks
+    - Directory setup: create `data/config`, `data/ingest`, `data/library`, `data/plugins` under `cwa_dir`
+    - Deploy docker-compose file
+    - Pull and start containers via `community.docker.docker_compose_v2`
+    - Clean up dangling images
+  - [x] 10.2 Create `group_vars/calibre-web.yml` with deployment variables
+    - `cwa_dir` — target directory on host (`/opt/calibre-web`)
+    - `cwa_data_dirs` — list of required data subdirectories
+  - [x] 10.3 Create `calibre-web/docker-compose.yml` with service definition
+    - CWA container with 1GB memory, 1 CPU limit
+    - Volume mounts for config, ingest, library, and plugins
+    - Descriptive comments on each volume mount

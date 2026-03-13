@@ -1,0 +1,49 @@
+---
+- name: Deploy Calibre-Web Automated
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../group_vars/calibre-web.yml
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: Directory Setup
+    # ──────────────────────────────────────────────
+
+    - name: Create CWA directory structure
+      ansible.builtin.file:
+        path: "{{ cwa_dir }}/data/{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+      loop: "{{ cwa_data_dirs }}"
+
+    # ──────────────────────────────────────────────
+    # Section: Deploy Configuration Files
+    # ──────────────────────────────────────────────
+
+    - name: Copy docker-compose file
+      ansible.builtin.copy:
+        src: ../calibre-web/docker-compose.yml
+        dest: "{{ cwa_dir }}/docker-compose.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    # ──────────────────────────────────────────────
+    # Section: Container Management
+    # ──────────────────────────────────────────────
+
+    - name: Pull latest images and start CWA containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ cwa_dir }}"
+        pull: always
+        state: present
+
+    - name: Clean up dangling Docker images
+      community.docker.docker_prune:
+        images: yes
+        images_filters:
+          dangling: true

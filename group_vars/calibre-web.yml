@@ -1,0 +1,16 @@
+---
+# Variables specific to the calibre-web playbook
+
+# ──────────────────────────────────────────────
+# Section: Calibre-Web Automated Deployment
+# ──────────────────────────────────────────────
+
+# Directory on the target host where calibre-web files are deployed
+cwa_dir: "/opt/calibre-web"
+
+# Subdirectories required by the CWA container
+cwa_data_dirs:
+  - config
+  - ingest
+  - library
+  - plugins

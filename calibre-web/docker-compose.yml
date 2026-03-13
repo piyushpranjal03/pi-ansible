@@ -1,0 +1,29 @@
+services:
+  # Calibre-Web Automated — self-hosted ebook library with automatic book ingestion
+  calibre-web-automated:
+    image: crocodilestick/calibre-web-automated:latest
+    container_name: calibre-web-automated
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Kolkata
+      - HARDCOVER_TOKEN=your_hardcover_api_key_here
+      - NETWORK_SHARE_MODE=false
+      - CWA_PORT_OVERRIDE=8083
+    volumes:
+      # User settings and Calibre-Web configuration
+      - ./data/config:/config
+      # Ingest directory — files placed here are automatically added to library then removed
+      - ./data/ingest:/cwa-book-ingest
+      # Ebook library — CWA creates one automatically if it doesn't exist
+      - ./data/library:/calibre-library
+      # Calibre plugins directory (WIP support)
+      - ./data/plugins:/config/.config/calibre/plugins
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
