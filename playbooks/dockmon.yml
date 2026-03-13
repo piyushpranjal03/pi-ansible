@@ -20,6 +20,50 @@
         mode: "0755"
 
     # ──────────────────────────────────────────────
+    # Section: Restore from Backup (if available)
+    # ──────────────────────────────────────────────
+
+    # Check if Restic is configured (restic playbook must have been run first)
+    - name: Check if Restic environment file exists
+      ansible.builtin.stat:
+        path: /etc/restic/env
+      register: restic_env
+
+    # Check if a backup snapshot exists for dockmon before attempting restore
+    - name: Check for existing dockmon backup
+      ansible.builtin.shell: |
+        set -a && . /etc/restic/env && set +a
+        restic snapshots --tag dockmon --json
+      register: dockmon_snapshots
+      changed_when: false
+      failed_when: false
+      when: restic_env.stat.exists
+
+    # Restore dockmon data volume from the latest backup snapshot
+    # Only runs on fresh deployments where the volume doesn't have data yet
+    - name: Check if dockmon volume already has data
+      ansible.builtin.shell: docker volume inspect dockmon_data
+      register: dockmon_volume_check
+      changed_when: false
+      failed_when: false
+
+    - name: Restore dockmon data from backup
+      ansible.builtin.shell: |
+        set -a && . /etc/restic/env && set +a
+        restic restore latest --tag dockmon --target /
+        docker volume create dockmon_data
+        docker run --rm \
+          -v dockmon_data:/data \
+          -v /tmp/dockmon-backup:/backup:ro \
+          alpine tar xf /backup/dockmon-data.tar -C /data
+        rm -rf /tmp/dockmon-backup
+      when:
+        - restic_env.stat.exists
+        - dockmon_snapshots.rc == 0
+        - dockmon_snapshots.stdout != "[]"
+        - dockmon_volume_check.rc != 0
+
+    # ──────────────────────────────────────────────
     # Section: Deploy Configuration Files
     # ──────────────────────────────────────────────
 
@@ -46,3 +90,62 @@
         images: yes
         images_filters:
           dangling: true
+
+    # ──────────────────────────────────────────────
+    # Section: Scheduled Backup (requires Restic playbook)
+    # ──────────────────────────────────────────────
+
+    # Deploy the backup script that tars the Docker volume and sends it to Restic/S3
+    - name: Copy dockmon backup script
+      ansible.builtin.copy:
+        src: ../services/dockmon/backup.sh
+        dest: "{{ dockmon_dir }}/backup.sh"
+        owner: root
+        group: root
+        mode: "0700"
+      when: restic_env.stat.exists
+
+    # Systemd service unit that runs the backup script
+    - name: Create dockmon backup service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/dockmon-backup.service
+        content: |
+          [Unit]
+          Description=Dockmon Restic Backup
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          ExecStart={{ dockmon_dir }}/backup.sh
+        owner: root
+        group: root
+        mode: "0644"
+      when: restic_env.stat.exists
+
+    # Systemd timer that triggers the backup daily at 3 AM
+    # Persistent=true ensures missed backups run on next boot
+    - name: Create dockmon backup timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/dockmon-backup.timer
+        content: |
+          [Unit]
+          Description=Daily Dockmon Backup
+
+          [Timer]
+          OnCalendar={{ dockmon_backup_schedule }}
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        owner: root
+        group: root
+        mode: "0644"
+      when: restic_env.stat.exists
+
+    - name: Enable and start dockmon backup timer
+      ansible.builtin.systemd:
+        name: dockmon-backup.timer
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      when: restic_env.stat.exists

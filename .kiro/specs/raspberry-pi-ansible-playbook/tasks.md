@@ -180,3 +180,17 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Service playbooks source `/etc/restic/env` for backup/restore commands
   - [x] 13.2 Create `group_vars/restic.yml` with backup variables
     - `restic_aws_region` — AWS region for S3 bucket
+
+- [x] 14. Add backup and restore to Dockmon playbook
+  - [x] 14.1 Add restore logic to `playbooks/dockmon.yml`
+    - Check if Restic is configured, check for existing snapshots
+    - Restore from latest backup on fresh deployments (volume doesn't exist yet)
+    - Extract tar into Docker named volume before container starts
+  - [x] 14.2 Create `services/dockmon/backup.sh`
+    - Tar the `dockmon_data` Docker volume via temporary Alpine container
+    - Send to Restic/S3 with `dockmon` tag
+    - Prune old snapshots (keep 7 daily, 4 weekly, 2 monthly)
+  - [x] 14.3 Add systemd timer for scheduled backups
+    - Deploy backup script, systemd service and timer units
+    - Daily at 3 AM with `Persistent=true` for missed runs
+    - All backup tasks conditional on Restic being configured

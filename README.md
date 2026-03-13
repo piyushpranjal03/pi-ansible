@@ -32,7 +32,8 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web/
 │   │   └── docker-compose.yml   # Calibre-Web Automated container service
 │   └── dockmon/
-│       └── docker-compose.yml   # Dockmon container service
+│       ├── docker-compose.yml   # Dockmon container service
+│       └── backup.sh            # Dockmon Restic backup script
 ```
 
 ## Prerequisites
@@ -142,13 +143,20 @@ You'll be prompted for a setup key (generate one from the [NetBird dashboard](ht
 
 ### Dockmon (`playbooks/dockmon.yml`)
 
-Deploys Dockmon — a Docker container monitoring dashboard.
+Deploys Dockmon — a Docker container monitoring dashboard. Includes automated backup and restore via Restic.
 
 ```bash
 ansible-playbook playbooks/dockmon.yml
 ```
 
 Accessible at `https://<pi-ip>:8001` after deployment.
+
+If the Restic playbook has been run, the dockmon playbook will:
+- Restore from the latest S3 backup on fresh deployments (so you get your config back after a crash)
+- Set up a daily systemd timer (3 AM) that backs up the `dockmon_data` Docker volume to S3
+- Retain 7 daily, 4 weekly, and 2 monthly backup snapshots
+
+Check backup logs with `journalctl -u dockmon-backup.service` and timer status with `systemctl status dockmon-backup.timer`.
 
 ## Configuration
 
@@ -158,7 +166,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/frigate.yml` — Frigate deployment directory, AWS region
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
-- `group_vars/dockmon.yml` — Dockmon deployment directory
+- `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
 - `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 

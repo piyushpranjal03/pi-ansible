@@ -7,3 +7,10 @@
 
 # Directory on the target host where dockmon files are deployed
 dockmon_dir: "/opt/dockmon"
+
+# ──────────────────────────────────────────────
+# Section: Backup Schedule
+# ──────────────────────────────────────────────
+
+# Systemd OnCalendar expression for backup frequency (default: daily at 3 AM)
+dockmon_backup_schedule: "*-*-* 03:00:00"
