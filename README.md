@@ -10,14 +10,22 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 ├── group_vars/
 │   ├── all.yml                  # Shared variables across all playbooks
 │   ├── provision.yml            # Variables for the provision playbook
-│   └── frigate.yml              # Variables for the frigate playbook
+│   ├── frigate.yml              # Variables for the frigate playbook
+│   ├── calibre-web.yml          # Variables for the calibre-web playbook
+│   └── netbird.yml              # Variables for the netbird playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
-│   └── frigate.yml              # Frigate NVR deployment playbook
-└── frigate/
-    ├── docker-compose.yml       # Frigate container services
-    ├── config.yml               # Frigate NVR configuration
-    └── scripts/main.py          # Automated S3 video export script
+│   ├── frigate.yml              # Frigate NVR deployment playbook
+│   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
+│   └── netbird.yml              # NetBird installation playbook
+├── frigate/
+│   ├── docker-compose.yml       # Frigate container services
+│   ├── config.yml               # Frigate NVR configuration
+│   └── scripts/
+│       ├── main.py              # Automated S3 video export script
+│       └── memory-monitor.sh    # Frigate memory watchdog script
+└── calibre-web/
+    └── docker-compose.yml       # Calibre-Web Automated container service
 ```
 
 ## Prerequisites
@@ -86,7 +94,28 @@ The playbook creates the directory structure at `/opt/frigate`, deploys config f
 #### Services
 
 - **frigate** — Frigate NVR with hardware-accelerated video processing, 10-day recording retention
+- **frigate-memory-monitor** — Sidecar that monitors frigate memory usage and restarts it at 80% threshold (workaround for known memory leak)
 - **frigate-video-export** — Sidecar that exports 10-minute video clips to S3 (Glacier Instant Retrieval) on a schedule
+
+### Calibre-Web Automated (`playbooks/calibre-web.yml`)
+
+Deploys Calibre-Web Automated — a self-hosted ebook library with automatic book ingestion.
+
+```bash
+ansible-playbook playbooks/calibre-web.yml
+```
+
+The playbook creates the directory structure at `/opt/calibre-web` with data directories for config, ingest, library, and plugins, then starts the container.
+
+### NetBird (`playbooks/netbird.yml`)
+
+Installs the NetBird client and registers the Pi with your NetBird network. Prompts for a setup key at runtime.
+
+```bash
+ansible-playbook playbooks/netbird.yml
+```
+
+You'll be prompted for a setup key (generate one from the [NetBird dashboard](https://app.netbird.io)). The playbook skips registration if the peer is already connected, so re-runs are safe.
 
 ## Configuration
 
@@ -94,6 +123,8 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 
 - `group_vars/provision.yml` — Tweak unattended-upgrades policy, watchdog thresholds, SSH settings, Docker users, journald limits
 - `group_vars/frigate.yml` — Frigate deployment directory, AWS region
+- `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories
+- `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 
 ## Notes

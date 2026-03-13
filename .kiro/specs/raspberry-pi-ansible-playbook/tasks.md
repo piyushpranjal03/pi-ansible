@@ -149,3 +149,15 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - CWA container with 1GB memory, 1 CPU limit
     - Volume mounts for config, ingest, library, and plugins
     - Descriptive comments on each volume mount
+
+- [x] 11. Create NetBird installation playbook
+  - [x] 11.1 Create `playbooks/netbird.yml` with installation and registration tasks
+    - `vars_prompt` for setup key with validation
+    - Add NetBird GPG key and apt repository (idempotent)
+    - Install `netbird` package
+    - Check connection status before registering (skip if already connected)
+    - Register with setup key (`no_log: true` to protect key in logs)
+    - Display final connection status
+  - [x] 11.2 Create `group_vars/netbird.yml` with installation variables
+    - `netbird_repo_url` — apt repository URL
+    - `netbird_gpg_url` — GPG key URL

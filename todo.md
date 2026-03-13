@@ -9,8 +9,6 @@
 
 - [ ] Docker container log persistence via logging driver configuration (e.g., json-file with max-size/max-file, or journald driver)
 
-- [ ] Calibre-Web Automated docker service deployment
-
 - [ ] Prometheus + Node Exporter for system metrics
   - CPU load, memory, temperature, disk usage
   - Grafana dashboards for metrics visualization

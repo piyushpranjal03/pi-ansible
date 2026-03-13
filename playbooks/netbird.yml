@@ -1,0 +1,72 @@
+---
+- name: Install NetBird
+  hosts: all
+  become: yes
+
+  vars_files:
+    - ../group_vars/netbird.yml
+
+  vars_prompt:
+    - name: netbird_setup_key
+      prompt: "Enter NetBird setup key"
+      default: ""
+      private: yes
+
+  pre_tasks:
+    - name: Validate setup key is provided
+      ansible.builtin.fail:
+        msg: "NetBird setup key is required. Generate one from the NetBird dashboard."
+      when: netbird_setup_key == ""
+
+  tasks:
+    # ──────────────────────────────────────────────
+    # Section: NetBird Installation
+    # ──────────────────────────────────────────────
+
+    # Add NetBird's official GPG key for package verification
+    - name: Add NetBird GPG key
+      ansible.builtin.get_url:
+        url: "{{ netbird_gpg_url }}"
+        dest: /etc/apt/keyrings/netbird.asc
+        mode: "0644"
+
+    # Add the official NetBird apt repository
+    - name: Add NetBird repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/netbird.asc] {{ netbird_repo_url }} stable main"
+        filename: netbird
+        state: present
+
+    # Install the NetBird client package
+    - name: Install NetBird
+      ansible.builtin.apt:
+        name: netbird
+        state: present
+        update_cache: yes
+
+    # ──────────────────────────────────────────────
+    # Section: NetBird Registration
+    # ──────────────────────────────────────────────
+
+    # Check if NetBird is already connected to avoid re-registering
+    - name: Check NetBird connection status
+      ansible.builtin.command: netbird status
+      register: netbird_status
+      changed_when: false
+      failed_when: false
+
+    # Register with the NetBird network using the setup key (skipped if already connected)
+    - name: Register NetBird with setup key
+      ansible.builtin.command: netbird up --setup-key {{ netbird_setup_key }}
+      when: "'Connected' not in netbird_status.stdout"
+      no_log: true
+
+    # Display current connection status for verification
+    - name: Verify NetBird status
+      ansible.builtin.command: netbird status
+      register: netbird_final_status
+      changed_when: false
+
+    - name: Display NetBird status
+      ansible.builtin.debug:
+        msg: "{{ netbird_final_status.stdout }}"

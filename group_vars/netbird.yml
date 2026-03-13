@@ -1,0 +1,12 @@
+---
+# Variables specific to the netbird playbook
+
+# ──────────────────────────────────────────────
+# Section: NetBird Installation
+# ──────────────────────────────────────────────
+
+# NetBird apt repository configuration URL
+netbird_repo_url: "https://pkgs.netbird.io/debian/repo"
+
+# GPG key URL for verifying NetBird packages
+netbird_gpg_url: "https://pkgs.netbird.io/debian/public.key"
