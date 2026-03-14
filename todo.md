@@ -2,7 +2,7 @@
 
 ## Future Tasks
 
-- [ ] Pin Docker image versions instead of using `latest` tags for reproducible deployments
+- [x] Pin Docker image versions instead of using `latest` tags for reproducible deployments
 
 - [ ] Reverse proxy (Caddy/Nginx/Traefik) for clean subdomain-based access to all services
 

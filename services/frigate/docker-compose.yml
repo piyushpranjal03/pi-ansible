@@ -5,7 +5,7 @@ services:
     container_name: frigate
     restart: unless-stopped
     stop_grace_period: 10s
-    image: ghcr.io/blakeblackshear/frigate:0.16.4
+    image: ghcr.io/blakeblackshear/frigate:0.16
     mem_limit: 4g
     env_file:
       - .env

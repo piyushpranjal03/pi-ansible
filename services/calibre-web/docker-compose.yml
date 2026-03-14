@@ -1,7 +1,7 @@
 services:
   # Calibre-Web Automated — self-hosted ebook library with automatic book ingestion
   calibre-web-automated:
-    image: crocodilestick/calibre-web-automated:latest
+    image: crocodilestick/calibre-web-automated:4
     container_name: calibre-web-automated
     env_file:
       - .env

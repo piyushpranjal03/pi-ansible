@@ -1,7 +1,7 @@
 services:
   # Prometheus — time-series metrics database, scrapes targets and stores data
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:3
     container_name: prometheus
     restart: unless-stopped
     mem_limit: 512m
@@ -23,7 +23,7 @@ services:
 
   # Node Exporter — lightweight agent that exposes system metrics (CPU, memory, disk, temperature)
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:1
     container_name: node-exporter
     restart: unless-stopped
     mem_limit: 64m
@@ -43,7 +43,7 @@ services:
 
   # Loki — log aggregation database, receives logs from Promtail
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3
     container_name: loki
     restart: unless-stopped
     mem_limit: 512m

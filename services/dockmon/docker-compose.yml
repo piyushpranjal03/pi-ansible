@@ -1,7 +1,7 @@
 services:
   # Dockmon — Docker container monitoring dashboard
   dockmon:
-    image: darthnorse/dockmon:latest
+    image: darthnorse/dockmon:2
     container_name: dockmon
     restart: unless-stopped
     mem_limit: 256m
