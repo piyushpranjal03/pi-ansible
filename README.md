@@ -61,6 +61,16 @@ If you must change a deploy directory after backups exist, you'll need to manual
 - Pi running Debian-based OS (Pi OS Bookworm+ recommended)
 - AWS IAM user with appropriate permissions (see [AWS IAM Setup](#aws-iam-setup) below)
 
+## SSH Key Setup
+
+Generate an RSA key pair on your control machine (if you don't already have one):
+
+```bash
+ssh-keygen -t rsa -b 4096 -C "pi-ansible"
+```
+
+This creates `~/.ssh/id_rsa` (private) and `~/.ssh/id_rsa.pub` (public). Paste the public key into the Pi Imager's SSH settings when flashing the SD card.
+
 ## Inventory Setup
 
 Edit `inventory/hosts.yml` with your Pi's IP and SSH details:
