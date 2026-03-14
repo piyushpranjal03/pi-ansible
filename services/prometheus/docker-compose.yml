@@ -37,3 +37,9 @@ services:
 
 volumes:
   prometheus_data:
+    name: prometheus_data
+
+networks:
+  default:
+    name: monitoring
+    external: true

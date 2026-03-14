@@ -1,0 +1,64 @@
+services:
+  # Grafana — dashboard UI for metrics (Prometheus) and logs (Loki)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: '0.5'
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - loki
+
+  # Loki — log aggregation database, receives logs from Promtail
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '1.0'
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - loki_data:/loki
+      - ./loki-config.yml:/etc/loki/loki-config.yml:ro
+
+  # Promtail — log shipping agent, tails Docker and journald logs and sends to Loki
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: '0.25'
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - promtail_positions:/tmp
+    depends_on:
+      - loki
+
+volumes:
+  grafana_data:
+    name: grafana_data
+  loki_data:
+    name: loki_data
+  promtail_positions:
+    name: promtail_positions
+
+networks:
+  default:
+    name: monitoring
+    external: true

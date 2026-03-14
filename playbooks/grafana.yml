@@ -1,19 +1,19 @@
 ---
-- name: Deploy Prometheus and Node Exporter
+- name: Deploy Grafana, Loki, and Promtail
   hosts: all
   become: yes
 
   vars_files:
-    - ../group_vars/prometheus.yml
+    - ../group_vars/grafana.yml
 
   tasks:
     # ──────────────────────────────────────────────
     # Section: Directory Setup
     # ──────────────────────────────────────────────
 
-    - name: Create prometheus directory
+    - name: Create grafana directory
       ansible.builtin.file:
-        path: "{{ prometheus_dir }}"
+        path: "{{ grafana_dir }}"
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -28,36 +28,41 @@
         path: /etc/restic/env
       register: restic_env
 
-    - name: Check for existing prometheus backup
+    - name: Check for existing grafana backup
       ansible.builtin.shell: |
         set -a && . /etc/restic/env && set +a
-        restic snapshots --tag prometheus --json
-      register: prometheus_snapshots
+        restic snapshots --tag grafana --json
+      register: grafana_snapshots
       changed_when: false
       failed_when: false
       when: restic_env.stat.exists
 
-    - name: Check if prometheus volume already has data
-      ansible.builtin.shell: docker volume inspect prometheus_data
-      register: prometheus_volume_check
+    - name: Check if grafana volume already has data
+      ansible.builtin.shell: docker volume inspect grafana_data
+      register: grafana_volume_check
       changed_when: false
       failed_when: false
 
-    - name: Restore prometheus data from backup
+    - name: Restore grafana and loki data from backup
       ansible.builtin.shell: |
         set -a && . /etc/restic/env && set +a
-        restic restore latest --tag prometheus --target /
-        docker volume create prometheus_data
+        restic restore latest --tag grafana --target /
+        docker volume create grafana_data
+        docker volume create loki_data
         docker run --rm \
-          -v prometheus_data:/data \
-          -v /tmp/prometheus-backup:/backup:ro \
-          alpine tar xf /backup/prometheus-data.tar -C /data
-        rm -rf /tmp/prometheus-backup
+          -v grafana_data:/data \
+          -v /tmp/grafana-backup:/backup:ro \
+          alpine tar xf /backup/grafana-data.tar -C /data
+        docker run --rm \
+          -v loki_data:/data \
+          -v /tmp/grafana-backup:/backup:ro \
+          alpine tar xf /backup/loki-data.tar -C /data
+        rm -rf /tmp/grafana-backup
       when:
         - restic_env.stat.exists
-        - prometheus_snapshots.rc == 0
-        - prometheus_snapshots.stdout != "[]"
-        - prometheus_volume_check.rc != 0
+        - grafana_snapshots.rc == 0
+        - grafana_snapshots.stdout != "[]"
+        - grafana_volume_check.rc != 0
 
     # ──────────────────────────────────────────────
     # Section: Network Setup
@@ -73,18 +78,34 @@
     # Section: Deploy Configuration Files
     # ──────────────────────────────────────────────
 
-    - name: Copy prometheus config
+    - name: Copy Loki config
       ansible.builtin.copy:
-        src: ../services/prometheus/prometheus.yml
-        dest: "{{ prometheus_dir }}/prometheus.yml"
+        src: ../services/grafana/loki-config.yml
+        dest: "{{ grafana_dir }}/loki-config.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy Promtail config
+      ansible.builtin.copy:
+        src: ../services/grafana/promtail-config.yml
+        dest: "{{ grafana_dir }}/promtail-config.yml"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy Grafana datasources provisioning
+      ansible.builtin.copy:
+        src: ../services/grafana/datasources.yml
+        dest: "{{ grafana_dir }}/datasources.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0644"
 
     - name: Copy docker-compose file
       ansible.builtin.copy:
-        src: ../services/prometheus/docker-compose.yml
-        dest: "{{ prometheus_dir }}/docker-compose.yml"
+        src: ../services/grafana/docker-compose.yml
+        dest: "{{ grafana_dir }}/docker-compose.yml"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0644"
@@ -93,9 +114,9 @@
     # Section: Container Management
     # ──────────────────────────────────────────────
 
-    - name: Pull latest images and start Prometheus stack
+    - name: Pull latest images and start Grafana stack
       community.docker.docker_compose_v2:
-        project_src: "{{ prometheus_dir }}"
+        project_src: "{{ grafana_dir }}"
         pull: always
         state: present
 
@@ -109,40 +130,40 @@
     # Section: Scheduled Backup (requires Restic playbook)
     # ──────────────────────────────────────────────
 
-    - name: Copy prometheus backup script
+    - name: Copy grafana backup script
       ansible.builtin.copy:
-        src: ../services/prometheus/backup.sh
-        dest: "{{ prometheus_dir }}/backup.sh"
+        src: ../services/grafana/backup.sh
+        dest: "{{ grafana_dir }}/backup.sh"
         owner: root
         group: root
         mode: "0700"
       when: restic_env.stat.exists
 
-    - name: Create prometheus backup service
+    - name: Create grafana backup service
       ansible.builtin.copy:
-        dest: /etc/systemd/system/prometheus-backup.service
+        dest: /etc/systemd/system/grafana-backup.service
         content: |
           [Unit]
-          Description=Prometheus Restic Backup
+          Description=Grafana and Loki Restic Backup
           After=docker.service
 
           [Service]
           Type=oneshot
-          ExecStart={{ prometheus_dir }}/backup.sh
+          ExecStart={{ grafana_dir }}/backup.sh
         owner: root
         group: root
         mode: "0644"
       when: restic_env.stat.exists
 
-    - name: Create prometheus backup timer
+    - name: Create grafana backup timer
       ansible.builtin.copy:
-        dest: /etc/systemd/system/prometheus-backup.timer
+        dest: /etc/systemd/system/grafana-backup.timer
         content: |
           [Unit]
-          Description=Daily Prometheus Backup
+          Description=Daily Grafana and Loki Backup
 
           [Timer]
-          OnCalendar={{ prometheus_backup_schedule }}
+          OnCalendar={{ grafana_backup_schedule }}
           Persistent=true
 
           [Install]
@@ -152,9 +173,9 @@
         mode: "0644"
       when: restic_env.stat.exists
 
-    - name: Enable and start prometheus backup timer
+    - name: Enable and start grafana backup timer
       ansible.builtin.systemd:
-        name: prometheus-backup.timer
+        name: grafana-backup.timer
         state: started
         enabled: yes
         daemon_reload: yes

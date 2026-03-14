@@ -22,3 +22,4 @@ services:
 
 volumes:
   dockmon_data:
+    name: dockmon_data

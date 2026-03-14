@@ -15,6 +15,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── netbird.yml              # Variables for the netbird playbook
 │   ├── dockmon.yml              # Variables for the dockmon playbook
 │   ├── prometheus.yml           # Variables for the prometheus playbook
+│   ├── grafana.yml              # Variables for the grafana playbook
 │   └── restic.yml               # Variables for the restic backup playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
@@ -23,7 +24,8 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
 │   ├── dockmon.yml              # Dockmon deployment playbook
-│   └── prometheus.yml           # Prometheus + Node Exporter deployment playbook
+│   ├── prometheus.yml           # Prometheus + Node Exporter deployment playbook
+│   └── grafana.yml              # Grafana + Loki + Promtail deployment playbook
 ├── services/
 │   ├── frigate/
 │   │   ├── docker-compose.yml   # Frigate container services
@@ -37,10 +39,16 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── dockmon/
 │   │   ├── docker-compose.yml   # Dockmon container service
 │   │   └── backup.sh            # Dockmon Restic backup script
-│   └── prometheus/
-│       ├── docker-compose.yml   # Prometheus + Node Exporter services
-│       ├── prometheus.yml       # Prometheus scrape configuration
-│       └── backup.sh            # Prometheus Restic backup script
+│   ├── prometheus/
+│   │   ├── docker-compose.yml   # Prometheus + Node Exporter services
+│   │   ├── prometheus.yml       # Prometheus scrape configuration
+│   │   └── backup.sh            # Prometheus Restic backup script
+│   └── grafana/
+│       ├── docker-compose.yml   # Grafana + Loki + Promtail services
+│       ├── loki-config.yml      # Loki storage and retention configuration
+│       ├── promtail-config.yml  # Promtail log scraping configuration
+│       ├── datasources.yml      # Grafana auto-provisioned data sources
+│       └── backup.sh            # Grafana + Loki Restic backup script
 ```
 
 ## Prerequisites
@@ -177,6 +185,28 @@ ansible-playbook playbooks/prometheus.yml
 
 Prometheus UI at `http://<pi-ip>:9090`, Node Exporter metrics at `http://<pi-ip>:9100/metrics`. Scrapes system metrics every 15 seconds with 30-day retention. Includes Restic backup/restore (daily at 4 AM).
 
+### Grafana + Loki + Promtail (`playbooks/grafana.yml`)
+
+Deploys the full logging and visualization stack — Grafana for dashboards, Loki for log storage, and Promtail for log shipping.
+
+```bash
+ansible-playbook playbooks/grafana.yml
+```
+
+Grafana UI at `http://<pi-ip>:3000` (default login `admin`/`admin`). Prometheus and Loki are auto-provisioned as data sources — no manual setup needed.
+
+#### Services
+
+- **Grafana** (256MB, 0.5 CPU) — Dashboard UI for metrics and logs
+- **Loki** (512MB, 1 CPU) — Log aggregation database with 30-day retention
+- **Promtail** (128MB, 0.25 CPU) — Tails Docker container logs and journald system logs, ships to Loki
+
+Promtail scrapes two log sources:
+- Docker container JSON logs (`/var/lib/docker/containers/`)
+- Journald system logs (watchdog, unattended-upgrades, SSH, systemd)
+
+Shares the `monitoring` Docker network with Prometheus so Grafana can query both metrics and logs. Includes Restic backup/restore for both Grafana and Loki data volumes (daily at 4:30 AM).
+
 ## Configuration
 
 All variables are in `group_vars/` with descriptive comments. Key files:
@@ -187,6 +217,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
 - `group_vars/prometheus.yml` — Prometheus deployment directory, backup schedule
+- `group_vars/grafana.yml` — Grafana deployment directory, backup schedule
 - `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 

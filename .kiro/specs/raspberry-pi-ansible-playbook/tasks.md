@@ -228,3 +228,28 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Node Exporter target (15s scrape interval)
     - Prometheus self-monitoring target
   - [x] 17.5 Create `services/prometheus/backup.sh` for Restic backup
+
+- [x] 18. Create Grafana + Loki + Promtail deployment playbook
+  - [x] 18.1 Create `playbooks/grafana.yml` with deployment tasks
+    - Directory setup, restore from backup (grafana + loki volumes), network setup
+    - Deploy Loki config, Promtail config, datasources provisioning, docker-compose
+    - Pull and start containers, prune dangling images
+    - Scheduled backup via systemd timer (daily at 4:30 AM)
+  - [x] 18.2 Create `group_vars/grafana.yml` with deployment variables
+    - `grafana_dir`, `grafana_backup_schedule`
+  - [x] 18.3 Create `services/grafana/docker-compose.yml`
+    - Grafana (256MB, 0.5 CPU), Loki (512MB, 1 CPU), Promtail (128MB, 0.25 CPU)
+    - Shared `monitoring` network with Prometheus stack
+    - Explicit volume names for backup script compatibility
+  - [x] 18.4 Create `services/grafana/loki-config.yml`
+    - TSDB schema v13, filesystem storage, 30-day retention with compactor
+  - [x] 18.5 Create `services/grafana/promtail-config.yml`
+    - Docker container json log scraping, journald scraping with relabeling
+  - [x] 18.6 Create `services/grafana/datasources.yml`
+    - Auto-provision Prometheus and Loki as Grafana data sources
+  - [x] 18.7 Create `services/grafana/backup.sh`
+    - Backs up both grafana_data and loki_data volumes
+  - [x] 18.8 Fix Docker volume naming across all compose files
+    - Added explicit `name:` to volumes in dockmon, prometheus, and grafana compose files
+    - Added `/etc/machine-id` mount to Promtail for journald access
+    - Added shared `monitoring` network to prometheus and grafana stacks
