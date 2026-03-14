@@ -1,16 +1,22 @@
 ---
-# Variables specific to the prometheus playbook
+# Variables specific to the monitoring playbook
 
 # ──────────────────────────────────────────────
-# Section: Prometheus Deployment
+# Section: Monitoring Stack Deployment
 # ──────────────────────────────────────────────
 
-# Directory on the target host where prometheus files are deployed
-prometheus_dir: "/opt/prometheus"
+# Directory on the target host where monitoring stack files are deployed
+monitoring_dir: "/opt/monitoring"
 
 # ──────────────────────────────────────────────
-# Section: Backup Schedule
+# Section: Backup Schedules
 # ──────────────────────────────────────────────
 
-# Systemd OnCalendar expression for backup frequency (default: daily at 4:00 AM)
+# Systemd OnCalendar expression for Prometheus backup (default: daily at 4:00 AM)
 prometheus_backup_schedule: "*-*-* 04:00:00"
+
+# Systemd OnCalendar expression for Loki backup (default: daily at 4:05 AM)
+loki_backup_schedule: "*-*-* 04:05:00"
+
+# Systemd OnCalendar expression for Grafana backup (default: daily at 4:10 AM)
+grafana_backup_schedule: "*-*-* 04:10:00"

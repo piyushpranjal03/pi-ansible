@@ -14,8 +14,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web.yml          # Variables for the calibre-web playbook
 │   ├── netbird.yml              # Variables for the netbird playbook
 │   ├── dockmon.yml              # Variables for the dockmon playbook
-│   ├── prometheus.yml           # Variables for the prometheus playbook
-│   ├── grafana.yml              # Variables for the grafana playbook
+│   ├── monitoring.yml           # Variables for the monitoring playbook
 │   └── restic.yml               # Variables for the restic backup playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
@@ -24,8 +23,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
 │   ├── dockmon.yml              # Dockmon deployment playbook
-│   ├── prometheus.yml           # Prometheus + Node Exporter deployment playbook
-│   └── grafana.yml              # Grafana + Loki + Promtail deployment playbook
+│   └── monitoring.yml           # Monitoring stack deployment playbook (Prometheus, Loki, Grafana)
 ├── services/
 │   ├── frigate/
 │   │   ├── docker-compose.yml   # Frigate container services
@@ -39,21 +37,20 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── dockmon/
 │   │   ├── docker-compose.yml   # Dockmon container service
 │   │   └── backup.sh            # Dockmon Restic backup script
-│   ├── prometheus/
-│   │   ├── docker-compose.yml   # Prometheus + Node Exporter services
-│   │   ├── prometheus.yml       # Prometheus scrape configuration
-│   │   └── backup.sh            # Prometheus Restic backup script
-│   └── grafana/
-│       ├── docker-compose.yml   # Grafana + Loki + Promtail services
+│   └── monitoring/
+│       ├── docker-compose.yml   # Full monitoring stack (Prometheus, Node Exporter, Loki, Promtail, Grafana)
+│       ├── prometheus.yml       # Prometheus scrape configuration
 │       ├── loki-config.yml      # Loki storage and retention configuration
 │       ├── promtail-config.yml  # Promtail log scraping configuration
 │       ├── datasources.yml      # Grafana auto-provisioned data sources
-│       └── backup.sh            # Grafana + Loki Restic backup script
+│       ├── prometheus-backup.sh # Prometheus Restic backup script
+│       ├── loki-backup.sh       # Loki Restic backup script
+│       └── grafana-backup.sh    # Grafana Restic backup script
 ```
 
 ## ⚠️ Changing Service Deploy Directories
 
-Do not change the `*_dir` variables (e.g. `cwa_dir`, `dockmon_dir`, `prometheus_dir`, `grafana_dir`) after a service has been deployed and backed up. Restic backup snapshots store files with their original absolute paths. If you change the deploy directory, restores will put files back at the old path instead of the new one, and the restored data won't be picked up by the service.
+Do not change the `*_dir` variables (e.g. `cwa_dir`, `dockmon_dir`, `monitoring_dir`) after a service has been deployed and backed up. Restic backup snapshots store files with their original absolute paths. If you change the deploy directory, restores will put files back at the old path instead of the new one, and the restored data won't be picked up by the service.
 
 If you must change a deploy directory after backups exist, you'll need to manually move the restored files from the old path to the new one.
 
@@ -181,37 +178,31 @@ If the Restic playbook has been run, the dockmon playbook will:
 
 Check backup logs with `journalctl -u dockmon-backup.service` and timer status with `systemctl status dockmon-backup.timer`.
 
-### Prometheus + Node Exporter (`playbooks/prometheus.yml`)
+### Monitoring Stack (`playbooks/monitoring.yml`)
 
-Deploys Prometheus for metrics collection and Node Exporter for system metrics (CPU, memory, disk, temperature).
-
-```bash
-ansible-playbook playbooks/prometheus.yml
-```
-
-Prometheus UI at `http://<pi-ip>:9090`, Node Exporter metrics at `http://<pi-ip>:9100/metrics`. Scrapes system metrics every 15 seconds with 30-day retention. Includes Restic backup/restore (daily at 4 AM).
-
-### Grafana + Loki + Promtail (`playbooks/grafana.yml`)
-
-Deploys the full logging and visualization stack — Grafana for dashboards, Loki for log storage, and Promtail for log shipping.
+Deploys the full monitoring and logging stack — Prometheus for metrics, Loki for logs, and Grafana for visualization. All five services run in a single Docker Compose project.
 
 ```bash
-ansible-playbook playbooks/grafana.yml
+ansible-playbook playbooks/monitoring.yml
 ```
 
-Grafana UI at `http://<pi-ip>:3000` (default login `admin`/`admin`). Prometheus and Loki are auto-provisioned as data sources — no manual setup needed.
+You'll be prompted for a Grafana admin password (defaults to `admin` if you just hit Enter).
 
 #### Services
 
-- **Grafana** (256MB, 0.5 CPU) — Dashboard UI for metrics and logs
+- **Prometheus** (512MB, 1 CPU) — Time-series metrics database with 30-day retention
+- **Node Exporter** (64MB, 0.25 CPU) — System metrics agent (CPU, memory, disk, temperature)
 - **Loki** (512MB, 1 CPU) — Log aggregation database with 30-day retention
 - **Promtail** (128MB, 0.25 CPU) — Tails Docker container logs and journald system logs, ships to Loki
+- **Grafana** (256MB, 0.5 CPU) — Dashboard UI for metrics and logs
 
-Promtail scrapes two log sources:
-- Docker container JSON logs (`/var/lib/docker/containers/`)
-- Journald system logs (watchdog, unattended-upgrades, SSH, systemd)
+All services have Docker health checks. Grafana waits for Prometheus and Loki to be healthy before starting, and Promtail waits for Loki.
 
-Shares the `monitoring` Docker network with Prometheus so Grafana can query both metrics and logs. Includes Restic backup/restore for both Grafana and Loki data volumes (daily at 4:30 AM).
+Prometheus UI at `http://<pi-ip>:9090`, Node Exporter at `http://<pi-ip>:9100/metrics`, Loki at `http://<pi-ip>:3100`, Grafana at `http://<pi-ip>:3000`. Prometheus and Loki are auto-provisioned as Grafana data sources.
+
+Includes independent Restic backup/restore for each data volume (Prometheus at 4:00 AM, Loki at 4:05 AM, Grafana at 4:10 AM). Backup scripts stop the container before tarring the volume for consistent snapshots, then restart it. A `trap` ensures the container always restarts even if the backup fails (e.g. no internet). On fresh deploys, restores run in order: Prometheus → Loki → Grafana.
+
+Check backup logs with `journalctl -u prometheus-backup.service` (or `loki-backup`, `grafana-backup`) and timer status with `systemctl status prometheus-backup.timer`.
 
 ## Configuration
 
@@ -222,8 +213,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories, backup schedule
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
-- `group_vars/prometheus.yml` — Prometheus deployment directory, backup schedule
-- `group_vars/grafana.yml` — Grafana deployment directory, backup schedule
+- `group_vars/monitoring.yml` — Monitoring stack deployment directory, backup schedules (Prometheus, Loki, Grafana)
 - `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 
