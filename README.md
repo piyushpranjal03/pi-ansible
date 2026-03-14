@@ -113,6 +113,8 @@ Run specific sections using tags:
 ansible-playbook playbooks/provision.yml --tags "docker,watchdog"
 ```
 
+> Note: On a fresh Pi, the first run will reboot the device to apply kernel-level changes (cgroup memory, watchdog, kernel updates). This is expected. Subsequent runs will only reboot if new changes require it.
+
 ### Restic Backup (`playbooks/restic.yml`)
 
 Installs Restic and initializes an encrypted S3 backup repository. Run this once after provision — service playbooks use the credentials it sets up for per-service backup and restore.

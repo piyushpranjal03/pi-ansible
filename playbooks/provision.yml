@@ -402,6 +402,8 @@
     # Placed at the very end so all configuration is applied before deciding whether to reboot.
     # Checks both the system-level reboot indicator (set by kernel/package updates)
     # and any registered change flags from earlier sections (boot config, cmdline).
+    # NOTE: On a fresh Pi, the first run will almost always reboot due to kernel updates
+    # and cgroup/watchdog boot config changes. This is expected.
 
     - name: Check if reboot is required
       ansible.builtin.stat:
