@@ -80,7 +80,7 @@ all:
   hosts:
     raspberry-pi-a:
       ansible_host: 192.168.18.100
-      ansible_user: pi
+      ansible_user: piyush
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
 ```
 
