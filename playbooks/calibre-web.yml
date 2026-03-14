@@ -21,6 +21,45 @@
       loop: "{{ cwa_data_dirs }}"
 
     # ──────────────────────────────────────────────
+    # Section: Restore from Backup (if available)
+    # ──────────────────────────────────────────────
+
+    # Check if Restic is configured (restic playbook must have been run first)
+    - name: Check if Restic environment file exists
+      ansible.builtin.stat:
+        path: /etc/restic/env
+      register: restic_env
+
+    # Check if a backup snapshot exists for CWA
+    - name: Check for existing CWA backup
+      ansible.builtin.shell: |
+        set -a && . /etc/restic/env && set +a
+        restic snapshots --tag calibre-web --json
+      register: cwa_snapshots
+      changed_when: false
+      failed_when: false
+      when: restic_env.stat.exists
+
+    # Check if CWA data already has content (skip restore if so)
+    - name: Check if CWA config directory has data
+      ansible.builtin.find:
+        paths: "{{ cwa_dir }}/data/config"
+        file_type: any
+      register: cwa_config_contents
+
+    # Restore CWA data from the latest backup snapshot
+    # Only runs on fresh deployments where config directory is empty
+    - name: Restore CWA data from backup
+      ansible.builtin.shell: |
+        set -a && . /etc/restic/env && set +a
+        restic restore latest --tag calibre-web --target /
+      when:
+        - restic_env.stat.exists
+        - cwa_snapshots.rc == 0
+        - cwa_snapshots.stdout != "[]"
+        - cwa_config_contents.matched == 0
+
+    # ──────────────────────────────────────────────
     # Section: Deploy Configuration Files
     # ──────────────────────────────────────────────
 
@@ -47,3 +86,62 @@
         images: yes
         images_filters:
           dangling: true
+
+    # ──────────────────────────────────────────────
+    # Section: Scheduled Backup (requires Restic playbook)
+    # ──────────────────────────────────────────────
+
+    # Deploy the backup script that sends CWA data directories to Restic/S3
+    - name: Copy CWA backup script
+      ansible.builtin.copy:
+        src: ../services/calibre-web/backup.sh
+        dest: "{{ cwa_dir }}/backup.sh"
+        owner: root
+        group: root
+        mode: "0700"
+      when: restic_env.stat.exists
+
+    # Systemd service unit that runs the backup script
+    - name: Create CWA backup service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/cwa-backup.service
+        content: |
+          [Unit]
+          Description=Calibre-Web Automated Restic Backup
+          After=docker.service
+
+          [Service]
+          Type=oneshot
+          ExecStart={{ cwa_dir }}/backup.sh
+        owner: root
+        group: root
+        mode: "0644"
+      when: restic_env.stat.exists
+
+    # Systemd timer that triggers the backup daily at 3:30 AM
+    # Offset from dockmon (3:00 AM) to avoid concurrent S3 uploads
+    - name: Create CWA backup timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/cwa-backup.timer
+        content: |
+          [Unit]
+          Description=Daily Calibre-Web Automated Backup
+
+          [Timer]
+          OnCalendar={{ cwa_backup_schedule }}
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        owner: root
+        group: root
+        mode: "0644"
+      when: restic_env.stat.exists
+
+    - name: Enable and start CWA backup timer
+      ansible.builtin.systemd:
+        name: cwa-backup.timer
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      when: restic_env.stat.exists

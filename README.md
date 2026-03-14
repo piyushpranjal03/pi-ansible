@@ -30,7 +30,8 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   │       ├── main.py          # Automated S3 video export script
 │   │       └── memory-monitor.sh # Frigate memory watchdog script
 │   ├── calibre-web/
-│   │   └── docker-compose.yml   # Calibre-Web Automated container service
+│   │   ├── docker-compose.yml   # Calibre-Web Automated container service
+│   │   └── backup.sh            # CWA Restic backup script
 │   └── dockmon/
 │       ├── docker-compose.yml   # Dockmon container service
 │       └── backup.sh            # Dockmon Restic backup script
@@ -131,6 +132,8 @@ ansible-playbook playbooks/calibre-web.yml
 
 The playbook creates the directory structure at `/opt/calibre-web` with data directories for config, ingest, library, and plugins, then starts the container.
 
+If the Restic playbook has been run, the playbook will restore from the latest S3 backup on fresh deployments and set up a daily backup timer at 3:30 AM.
+
 ### NetBird (`playbooks/netbird.yml`)
 
 Installs the NetBird client and registers the Pi with your NetBird network. Prompts for a setup key at runtime.
@@ -164,7 +167,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 
 - `group_vars/provision.yml` — Tweak unattended-upgrades policy, watchdog thresholds, SSH settings, Docker users, journald limits
 - `group_vars/frigate.yml` — Frigate deployment directory, AWS region
-- `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories
+- `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories, backup schedule
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
 - `group_vars/restic.yml` — Restic backup AWS region

@@ -14,3 +14,11 @@ cwa_data_dirs:
   - ingest
   - library
   - plugins
+
+# ──────────────────────────────────────────────
+# Section: Backup Schedule
+# ──────────────────────────────────────────────
+
+# Systemd OnCalendar expression for backup frequency (default: daily at 3:30 AM)
+# Offset from dockmon backup (3:00 AM) to avoid concurrent S3 uploads
+cwa_backup_schedule: "*-*-* 03:30:00"

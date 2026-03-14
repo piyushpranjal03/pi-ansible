@@ -13,8 +13,6 @@
 
 - [ ] Homarr dashboard for a single landing page with links to all services
 
-- [ ] Calibre-Web Automated backup and restore using Restic
-
 - [ ] Prometheus + Node Exporter for system metrics
   - CPU load, memory, temperature, disk usage
   - Grafana dashboards for metrics visualization

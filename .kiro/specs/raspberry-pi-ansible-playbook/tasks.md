@@ -194,3 +194,15 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Deploy backup script, systemd service and timer units
     - Daily at 3 AM with `Persistent=true` for missed runs
     - All backup tasks conditional on Restic being configured
+
+- [x] 15. Add backup and restore to Calibre-Web Automated playbook
+  - [x] 15.1 Add restore logic to `playbooks/calibre-web.yml`
+    - Check if Restic is configured, check for existing snapshots
+    - Restore from latest backup on fresh deployments (config directory is empty)
+  - [x] 15.2 Create `services/calibre-web/backup.sh`
+    - Back up config, library, and plugins directories directly (bind mounts, no tar needed)
+    - Exclude ingest directory (temporary drop folder)
+    - Prune old snapshots (keep 7 daily, 4 weekly, 2 monthly)
+  - [x] 15.3 Add systemd timer for scheduled backups
+    - Daily at 3:30 AM (offset from dockmon at 3:00 AM)
+    - All backup tasks conditional on Restic being configured
