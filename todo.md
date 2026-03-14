@@ -9,3 +9,5 @@
 - [ ] Correct logging level for Grafana alerts
 
 - [ ] Review `handle_stuck_exports` ordering in `main.py` — re-submit then delete could cause duplicates if delete fails, and losing footage if re-submit fails after retries
+
+- [ ] Cloudflare Tunnel playbook for secure external access without exposing ports
