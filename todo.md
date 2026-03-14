@@ -2,8 +2,6 @@
 
 ## Future Tasks
 
-- [x] Pin Docker image versions instead of using `latest` tags for reproducible deployments
-
 - [ ] Reverse proxy (Caddy/Nginx/Traefik) for clean subdomain-based access to all services
 
 - [ ] Homarr dashboard for a single landing page with links to all services
