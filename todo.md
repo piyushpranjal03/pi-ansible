@@ -7,8 +7,6 @@
   - Grafana dashboards for log visualization and search
   - Grafana alerting rules for notifications (Slack, Telegram, ntfy, etc.) on upgrade events, watchdog triggers, errors
 
-- [ ] Docker container log persistence via logging driver configuration (e.g., json-file with max-size/max-file, or journald driver)
-
 - [ ] Reverse proxy (Caddy/Nginx/Traefik) for clean subdomain-based access to all services
 
 - [ ] Homarr dashboard for a single landing page with links to all services

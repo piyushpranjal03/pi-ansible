@@ -6,16 +6,22 @@
     - ../group_vars/provision.yml
 
   handlers:
-    # Handlers only run when notified by a task that made a change.
-    # Even if multiple tasks notify the same handler, it runs only once at the end of the play.
+    # Restart journald when any logging config changes
     - name: restart journald
       ansible.builtin.systemd:
         name: systemd-journald
         state: restarted
 
+    # Restart SSH when any sshd_config setting changes
     - name: restart sshd
       ansible.builtin.systemd:
         name: ssh
+        state: restarted
+
+    # Restart Docker when daemon.json changes (picks up new logging driver config)
+    - name: restart docker
+      ansible.builtin.systemd:
+        name: docker
         state: restarted
 
   tasks:
@@ -175,6 +181,25 @@
         name: docker
         state: started
         enabled: yes
+      tags: [docker]
+
+    # Set default logging driver for all containers with rotation limits
+    # Prevents unbounded log growth on SD cards — each container keeps max 30MB of logs
+    - name: Configure Docker daemon defaults
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "{{ docker_log_driver }}",
+            "log-opts": {
+              "max-size": "{{ docker_log_max_size }}",
+              "max-file": "{{ docker_log_max_file }}"
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart docker
       tags: [docker]
 
     # Add specified users to the docker group so they can run containers without sudo

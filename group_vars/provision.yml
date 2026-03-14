@@ -73,6 +73,15 @@ docker_arch_map:
   x86_64: amd64
   armv7l: armhf
 
+# Default logging driver for all containers
+docker_log_driver: "json-file"
+
+# Max size per log file before rotation (e.g., "10m", "50m", "100m")
+docker_log_max_size: "10m"
+
+# Max number of rotated log files to keep per container
+docker_log_max_file: "3"
+
 # ──────────────────────────────────────────────
 # Section: Hardware Watchdog (tag: watchdog)
 # ──────────────────────────────────────────────

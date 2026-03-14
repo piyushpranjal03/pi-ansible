@@ -206,3 +206,9 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
   - [x] 15.3 Add systemd timer for scheduled backups
     - Daily at 3:30 AM (offset from dockmon at 3:00 AM)
     - All backup tasks conditional on Restic being configured
+
+- [x] 16. Configure Docker container log persistence
+  - [x] 16.1 Add daemon.json deployment to Docker section in `provision.yml`
+    - Deploy `/etc/docker/daemon.json` with `json-file` driver, `max-size: 10m`, `max-file: 3`
+    - Restart Docker handler only fires when config changes
+    - Added variables to `group_vars/provision.yml`: `docker_log_driver`, `docker_log_max_size`, `docker_log_max_file`
