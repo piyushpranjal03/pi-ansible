@@ -110,11 +110,10 @@
     # Section: Container Management
     # ──────────────────────────────────────────────
 
-    - name: Pull latest images and recreate Frigate containers
+    - name: Pull latest images and start Frigate containers
       community.docker.docker_compose_v2:
         project_src: "{{ frigate_dir }}"
         pull: always
-        recreate: always
         state: present
 
     - name: Clean up dangling Docker images
