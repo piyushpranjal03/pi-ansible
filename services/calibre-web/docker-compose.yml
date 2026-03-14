@@ -3,6 +3,8 @@ services:
   calibre-web-automated:
     image: crocodilestick/calibre-web-automated:latest
     container_name: calibre-web-automated
+    env_file:
+      - .env
     deploy:
       resources:
         limits:
@@ -12,7 +14,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Asia/Kolkata
-      - HARDCOVER_TOKEN=your_hardcover_api_key_here
+      - HARDCOVER_TOKEN=${HARDCOVER_TOKEN:-}
       - NETWORK_SHARE_MODE=false
       - CWA_PORT_OVERRIDE=8083
     volumes:

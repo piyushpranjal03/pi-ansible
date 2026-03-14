@@ -4,11 +4,13 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    env_file:
+      - .env
     mem_limit: 256m
     memswap_limit: 256m
     cpus: '0.5'
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana

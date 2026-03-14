@@ -6,6 +6,12 @@
   vars_files:
     - ../group_vars/grafana.yml
 
+  vars_prompt:
+    - name: grafana_admin_password
+      prompt: "Enter Grafana admin password"
+      default: "admin"
+      private: yes
+
   tasks:
     # ──────────────────────────────────────────────
     # Section: Directory Setup
@@ -73,6 +79,20 @@
       community.docker.docker_network:
         name: monitoring
         state: present
+
+    # ──────────────────────────────────────────────
+    # Section: Environment and Secrets
+    # ──────────────────────────────────────────────
+
+    - name: Create Grafana .env file
+      ansible.builtin.copy:
+        content: |
+          GRAFANA_ADMIN_PASSWORD={{ grafana_admin_password }}
+        dest: "{{ grafana_dir }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      no_log: true
 
     # ──────────────────────────────────────────────
     # Section: Deploy Configuration Files

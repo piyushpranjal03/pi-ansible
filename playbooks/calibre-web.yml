@@ -6,6 +6,12 @@
   vars_files:
     - ../group_vars/calibre-web.yml
 
+  vars_prompt:
+    - name: hardcover_token
+      prompt: "Enter Hardcover API token (leave empty to skip)"
+      default: ""
+      private: yes
+
   tasks:
     # ──────────────────────────────────────────────
     # Section: Directory Setup
@@ -19,6 +25,20 @@
         group: "{{ ansible_user }}"
         mode: "0755"
       loop: "{{ cwa_data_dirs }}"
+
+    # ──────────────────────────────────────────────
+    # Section: Environment and Secrets
+    # ──────────────────────────────────────────────
+
+    - name: Create CWA .env file
+      ansible.builtin.copy:
+        content: |
+          HARDCOVER_TOKEN={{ hardcover_token }}
+        dest: "{{ cwa_dir }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      no_log: true
 
     # ──────────────────────────────────────────────
     # Section: Restore from Backup (if available)
