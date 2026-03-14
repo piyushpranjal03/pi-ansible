@@ -51,6 +51,12 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │       └── backup.sh            # Grafana + Loki Restic backup script
 ```
 
+## ⚠️ Changing Service Deploy Directories
+
+Do not change the `*_dir` variables (e.g. `cwa_dir`, `dockmon_dir`, `prometheus_dir`, `grafana_dir`) after a service has been deployed and backed up. Restic backup snapshots store files with their original absolute paths. If you change the deploy directory, restores will put files back at the old path instead of the new one, and the restored data won't be picked up by the service.
+
+If you must change a deploy directory after backups exist, you'll need to manually move the restored files from the old path to the new one.
+
 ## Prerequisites
 
 - Ansible installed on your control machine
