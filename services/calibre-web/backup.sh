@@ -5,7 +5,7 @@
 set -euo pipefail
 
 LOG_PREFIX="[cwa-backup]"
-CWA_DATA="/opt/calibre-web/data"
+CWA_DATA="{{ cwa_dir }}/data"
 TAG="calibre-web"
 
 # Load Restic environment (repo URL, credentials, password file)

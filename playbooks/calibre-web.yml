@@ -92,8 +92,8 @@
     # ──────────────────────────────────────────────
 
     # Deploy the backup script that sends CWA data directories to Restic/S3
-    - name: Copy CWA backup script
-      ansible.builtin.copy:
+    - name: Deploy CWA backup script
+      ansible.builtin.template:
         src: ../services/calibre-web/backup.sh
         dest: "{{ cwa_dir }}/backup.sh"
         owner: root
