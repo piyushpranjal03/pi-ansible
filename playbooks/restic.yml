@@ -3,6 +3,7 @@
   hosts: all
 
   vars_files:
+    - ../group_vars/all.yml
     - ../group_vars/restic.yml
 
   vars_prompt:
