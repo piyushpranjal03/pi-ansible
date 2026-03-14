@@ -247,7 +247,8 @@ def handle_stuck_exports():
     """Handle exports stuck in progress for 30+ minutes"""
     try:
         exports = get_all_exports()
-        current_time = datetime.now()
+        ist = pytz.timezone('Asia/Kolkata')
+        current_time = datetime.now(ist)
         stuck_exports = []
         
         for export in exports:
@@ -255,7 +256,7 @@ def handle_stuck_exports():
                 continue
                 
             # Use the date field (epoch timestamp) from API response
-            export_date = datetime.fromtimestamp(export.get('date', 0))
+            export_date = datetime.fromtimestamp(export.get('date', 0), tz=ist)
             
             if (current_time - export_date).total_seconds() > 1800:  # 30 minutes
                 stuck_exports.append(export)
