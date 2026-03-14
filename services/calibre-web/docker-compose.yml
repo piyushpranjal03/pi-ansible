@@ -27,4 +27,3 @@ services:
       - ./data/plugins:/config/.config/calibre/plugins
     ports:
       - "8083:8083"
-    restart: unless-stopped
