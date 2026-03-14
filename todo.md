@@ -10,8 +10,3 @@
 - [ ] Reverse proxy (Caddy/Nginx/Traefik) for clean subdomain-based access to all services
 
 - [ ] Homarr dashboard for a single landing page with links to all services
-
-- [ ] Prometheus + Node Exporter for system metrics
-  - CPU load, memory, temperature, disk usage
-  - Grafana dashboards for metrics visualization
-  - Alert rules for early warnings before watchdog thresholds are hit

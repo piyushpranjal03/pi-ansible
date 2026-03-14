@@ -1,0 +1,16 @@
+---
+# Variables specific to the prometheus playbook
+
+# ──────────────────────────────────────────────
+# Section: Prometheus Deployment
+# ──────────────────────────────────────────────
+
+# Directory on the target host where prometheus files are deployed
+prometheus_dir: "/opt/prometheus"
+
+# ──────────────────────────────────────────────
+# Section: Backup Schedule
+# ──────────────────────────────────────────────
+
+# Systemd OnCalendar expression for backup frequency (default: daily at 4:00 AM)
+prometheus_backup_schedule: "*-*-* 04:00:00"

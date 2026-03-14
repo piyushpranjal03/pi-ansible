@@ -1,0 +1,39 @@
+services:
+  # Prometheus — time-series metrics database, scrapes targets and stores data
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: '1.0'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  # Node Exporter — lightweight agent that exposes system metrics (CPU, memory, disk, temperature)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: '0.25'
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.thermal_zone'
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+    pid: host
+
+volumes:
+  prometheus_data:

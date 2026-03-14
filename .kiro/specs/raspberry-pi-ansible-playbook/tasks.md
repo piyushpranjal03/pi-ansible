@@ -212,3 +212,19 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
     - Deploy `/etc/docker/daemon.json` with `json-file` driver, `max-size: 10m`, `max-file: 3`
     - Restart Docker handler only fires when config changes
     - Added variables to `group_vars/provision.yml`: `docker_log_driver`, `docker_log_max_size`, `docker_log_max_file`
+
+- [x] 17. Create Prometheus + Node Exporter deployment playbook
+  - [x] 17.1 Create `playbooks/prometheus.yml` with deployment tasks
+    - Directory setup, restore from backup, deploy config and docker-compose
+    - Pull and start containers, prune dangling images
+    - Scheduled backup via systemd timer (daily at 4:00 AM)
+  - [x] 17.2 Create `group_vars/prometheus.yml` with deployment variables
+    - `prometheus_dir` — target directory on host (`/opt/prometheus`)
+    - `prometheus_backup_schedule` — backup timer schedule
+  - [x] 17.3 Create `services/prometheus/docker-compose.yml`
+    - Prometheus (512MB, 1 CPU, 30-day retention, lifecycle API enabled)
+    - Node Exporter (64MB, 0.25 CPU, host PID namespace, thermal zone collector)
+  - [x] 17.4 Create `services/prometheus/prometheus.yml` scrape config
+    - Node Exporter target (15s scrape interval)
+    - Prometheus self-monitoring target
+  - [x] 17.5 Create `services/prometheus/backup.sh` for Restic backup

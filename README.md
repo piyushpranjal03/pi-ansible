@@ -14,6 +14,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web.yml          # Variables for the calibre-web playbook
 │   ├── netbird.yml              # Variables for the netbird playbook
 │   ├── dockmon.yml              # Variables for the dockmon playbook
+│   ├── prometheus.yml           # Variables for the prometheus playbook
 │   └── restic.yml               # Variables for the restic backup playbook
 ├── playbooks/
 │   ├── provision.yml            # System provisioning playbook
@@ -21,7 +22,8 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── frigate.yml              # Frigate NVR deployment playbook
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
-│   └── dockmon.yml              # Dockmon deployment playbook
+│   ├── dockmon.yml              # Dockmon deployment playbook
+│   └── prometheus.yml           # Prometheus + Node Exporter deployment playbook
 ├── services/
 │   ├── frigate/
 │   │   ├── docker-compose.yml   # Frigate container services
@@ -32,9 +34,13 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web/
 │   │   ├── docker-compose.yml   # Calibre-Web Automated container service
 │   │   └── backup.sh            # CWA Restic backup script
-│   └── dockmon/
-│       ├── docker-compose.yml   # Dockmon container service
-│       └── backup.sh            # Dockmon Restic backup script
+│   ├── dockmon/
+│   │   ├── docker-compose.yml   # Dockmon container service
+│   │   └── backup.sh            # Dockmon Restic backup script
+│   └── prometheus/
+│       ├── docker-compose.yml   # Prometheus + Node Exporter services
+│       ├── prometheus.yml       # Prometheus scrape configuration
+│       └── backup.sh            # Prometheus Restic backup script
 ```
 
 ## Prerequisites
@@ -161,6 +167,16 @@ If the Restic playbook has been run, the dockmon playbook will:
 
 Check backup logs with `journalctl -u dockmon-backup.service` and timer status with `systemctl status dockmon-backup.timer`.
 
+### Prometheus + Node Exporter (`playbooks/prometheus.yml`)
+
+Deploys Prometheus for metrics collection and Node Exporter for system metrics (CPU, memory, disk, temperature).
+
+```bash
+ansible-playbook playbooks/prometheus.yml
+```
+
+Prometheus UI at `http://<pi-ip>:9090`, Node Exporter metrics at `http://<pi-ip>:9100/metrics`. Scrapes system metrics every 15 seconds with 30-day retention. Includes Restic backup/restore (daily at 4 AM).
+
 ## Configuration
 
 All variables are in `group_vars/` with descriptive comments. Key files:
@@ -170,6 +186,7 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories, backup schedule
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
 - `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
+- `group_vars/prometheus.yml` — Prometheus deployment directory, backup schedule
 - `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
 
