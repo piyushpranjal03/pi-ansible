@@ -108,9 +108,10 @@
     # Section: Container Management
     # ──────────────────────────────────────────────
 
-    - name: Pull latest images and start Frigate containers
+    - name: Build, pull, and start Frigate containers
       community.docker.docker_compose_v2:
         project_src: "{{ frigate_dir }}"
+        build: always
         pull: always
         state: present
 

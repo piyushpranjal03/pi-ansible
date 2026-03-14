@@ -50,17 +50,14 @@ services:
   frigate-video-export:
     container_name: frigate-video-export
     restart: unless-stopped
-    image: python:3.11-slim
-    working_dir: /app
+    build: ./scripts
     mem_limit: 500m
     memswap_limit: 500m
     cpus: '1.0'
     env_file:
       - .env
     volumes:
-      - ./scripts:/app
       - ./storage:/media/frigate:ro
       - /etc/localtime:/etc/localtime:ro
-    command: sh -c "pip install apscheduler boto3 requests pytz tenacity && python main.py"
     depends_on:
       - frigate
