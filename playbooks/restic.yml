@@ -1,7 +1,6 @@
 ---
 - name: Setup Restic Backup
   hosts: all
-  become: yes
 
   vars_files:
     - ../group_vars/restic.yml
