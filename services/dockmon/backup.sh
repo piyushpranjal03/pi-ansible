@@ -8,6 +8,7 @@ LOG_PREFIX="[dockmon-backup]"
 VOLUME_NAME="dockmon_data"
 MOUNT_PATH="/tmp/dockmon-backup"
 TAG="dockmon"
+BACKUP_TIMEOUT=600
 BACKUP_FAILED=false
 
 log_info()  { echo "$LOG_PREFIX [INFO] $1"; }
@@ -36,7 +37,7 @@ docker run --rm \
   alpine tar cf /backup/dockmon-data.tar -C /data . || { log_error "Failed to create tar archive"; BACKUP_FAILED=true; exit 1; }
 
 # Back up the tar to Restic with a service-specific tag
-restic backup "$MOUNT_PATH" --tag "$TAG" || { log_error "Failed to upload backup to Restic"; BACKUP_FAILED=true; exit 1; }
+timeout "$BACKUP_TIMEOUT" restic backup "$MOUNT_PATH" --tag "$TAG" || { log_error "Failed to upload backup to Restic (timed out or errored after ${BACKUP_TIMEOUT}s)"; BACKUP_FAILED=true; exit 1; }
 
 # Clean up temporary files
 rm -rf "$MOUNT_PATH"
