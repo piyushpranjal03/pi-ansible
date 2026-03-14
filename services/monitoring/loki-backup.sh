@@ -9,6 +9,7 @@ CONTAINER_NAME="loki"
 VOLUME_NAME="loki_data"
 MOUNT_PATH="/tmp/loki-backup"
 TAG="loki"
+BACKUP_TIMEOUT=600
 BACKUP_FAILED=false
 
 log_info()  { echo "$LOG_PREFIX [INFO] $1"; }
@@ -43,7 +44,7 @@ docker run --rm \
   alpine tar cf /backup/loki-data.tar -C /data . || { log_error "Failed to create tar archive"; BACKUP_FAILED=true; exit 1; }
 
 # Back up the tar to Restic with a service-specific tag
-restic backup "$MOUNT_PATH" --tag "$TAG" || { log_error "Failed to upload backup to Restic"; BACKUP_FAILED=true; exit 1; }
+timeout "$BACKUP_TIMEOUT" restic backup "$MOUNT_PATH" --tag "$TAG" || { log_error "Failed to upload backup to Restic (timed out or errored after ${BACKUP_TIMEOUT}s)"; BACKUP_FAILED=true; exit 1; }
 
 # Prune old snapshots (keep 7 daily, 4 weekly, 2 monthly)
 restic forget --tag "$TAG" --keep-daily 7 --keep-weekly 4 --keep-monthly 2 --prune || log_error "Failed to prune old snapshots"
