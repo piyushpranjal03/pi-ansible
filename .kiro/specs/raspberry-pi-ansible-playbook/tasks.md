@@ -127,7 +127,7 @@ Build a single-playbook Ansible project that provisions a Debian-based Linux ser
   - [x] 9.1 Create `frigate/scripts/memory-monitor.sh`
     - Shell-based memory watchdog that polls `docker stats` at a configurable interval
     - Restarts frigate container when memory usage exceeds threshold (default 80%)
-    - Logs to `/app/logs/memory-monitor.log` and stdout (Docker logs)
+    - Logs to stdout (Docker logs → Promtail → Loki)
     - Configurable via `MEMORY_THRESHOLD` and `CHECK_INTERVAL` environment variables
     - Error handling for missing container stats
   - [x] 9.2 Add `frigate-memory-monitor` sidecar to `frigate/docker-compose.yml`

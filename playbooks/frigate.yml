@@ -54,7 +54,6 @@
       loop:
         - "{{ frigate_dir }}"
         - "{{ frigate_dir }}/config"
-        - "{{ frigate_dir }}/logs"
         - "{{ frigate_dir }}/scripts"
 
     # ──────────────────────────────────────────────

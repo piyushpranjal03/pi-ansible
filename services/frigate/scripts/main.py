@@ -19,14 +19,12 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
 CAMERAS = os.getenv("CAMERAS", "roadside,stairs").split(",")
-LOG_DIR = "/app/logs"
 
-# Configure logging
+# Configure logging — stdout only, Docker handles log collection via Promtail → Loki
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(name)s | %(levelname)s | %(funcName)s:%(lineno)d | %(message)s',
     handlers=[
-        logging.FileHandler(f"{LOG_DIR}/s3_export.log"),
         logging.StreamHandler()
     ]
 )
