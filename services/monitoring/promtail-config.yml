@@ -8,14 +8,23 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Collect logs from all Docker containers via json log files
+  # Collect logs from all Docker containers via Docker service discovery
+  # Connects to Docker socket to auto-discover containers and label logs
+  # with container name, compose service, and compose project
   - job_name: docker
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/**/*-json.log
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/?(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'compose_service'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'compose_project'
+      - target_label: 'job'
+        replacement: 'docker'
     pipeline_stages:
       - docker: {}
 
