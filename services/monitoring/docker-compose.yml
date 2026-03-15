@@ -33,6 +33,11 @@ services:
     command:
       - '--path.rootfs=/host'
       - '--collector.thermal_zone'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:9100/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - /:/host:ro,rslave
     pid: host
