@@ -4,7 +4,6 @@
 
   vars_files:
     - ../group_vars/all.yml
-    - ../group_vars/netbird.yml
 
   vars_prompt:
     - name: netbird_setup_key
@@ -23,26 +22,11 @@
     # Section: NetBird Installation
     # ──────────────────────────────────────────────
 
-    # Add NetBird's official GPG key for package verification
-    - name: Add NetBird GPG key
-      ansible.builtin.get_url:
-        url: "{{ netbird_gpg_url }}"
-        dest: /etc/apt/keyrings/netbird.asc
-        mode: "0644"
-
-    # Add the official NetBird apt repository
-    - name: Add NetBird repository
-      ansible.builtin.apt_repository:
-        repo: "deb [signed-by=/etc/apt/keyrings/netbird.asc] {{ netbird_repo_url }} stable main"
-        filename: netbird
-        state: present
-
-    # Install the NetBird client package
+    # Install NetBird using the official install script
     - name: Install NetBird
-      ansible.builtin.apt:
-        name: netbird
-        state: present
-        update_cache: yes
+      ansible.builtin.shell: curl -fsSL https://pkgs.netbird.io/install.sh | sh
+      args:
+        creates: /usr/bin/netbird
 
     # ──────────────────────────────────────────────
     # Section: NetBird Registration
@@ -59,7 +43,6 @@
     - name: Register NetBird with setup key
       ansible.builtin.command: netbird up --setup-key {{ netbird_setup_key }}
       when: "'Connected' not in netbird_status.stdout"
-      no_log: true
 
     # Display current connection status for verification
     - name: Verify NetBird status
