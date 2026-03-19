@@ -12,8 +12,6 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── provision.yml            # Variables for the provision playbook
 │   ├── frigate.yml              # Variables for the frigate playbook
 │   ├── calibre-web.yml          # Variables for the calibre-web playbook
-│   ├── netbird.yml              # Variables for the netbird playbook
-│   ├── dockmon.yml              # Variables for the dockmon playbook
 │   ├── monitoring.yml           # Variables for the monitoring playbook
 │   └── restic.yml               # Variables for the restic backup playbook
 ├── playbooks/
@@ -22,7 +20,6 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── frigate.yml              # Frigate NVR deployment playbook
 │   ├── calibre-web.yml          # Calibre-Web Automated deployment playbook
 │   ├── netbird.yml              # NetBird installation playbook
-│   ├── dockmon.yml              # Dockmon deployment playbook
 │   └── monitoring.yml           # Monitoring stack deployment playbook (Prometheus, Loki, Grafana)
 ├── services/
 │   ├── frigate/
@@ -34,9 +31,6 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 │   ├── calibre-web/
 │   │   ├── docker-compose.yml   # Calibre-Web Automated container service
 │   │   └── backup.sh            # CWA Restic backup script
-│   ├── dockmon/
-│   │   ├── docker-compose.yml   # Dockmon container service
-│   │   └── backup.sh            # Dockmon Restic backup script
 │   └── monitoring/
 │       ├── docker-compose.yml   # Full monitoring stack (Prometheus, Node Exporter, Loki, Promtail, Grafana)
 │       ├── prometheus.yml       # Prometheus scrape configuration
@@ -50,7 +44,7 @@ Ansible project for provisioning and deploying services on a Raspberry Pi runnin
 
 ## ⚠️ Changing Service Deploy Directories
 
-Do not change the `*_dir` variables (e.g. `cwa_dir`, `dockmon_dir`, `monitoring_dir`) after a service has been deployed and backed up. Restic backup snapshots store files with their original absolute paths. If you change the deploy directory, restores will put files back at the old path instead of the new one, and the restored data won't be picked up by the service.
+Do not change the `*_dir` variables (e.g. `cwa_dir`, `monitoring_dir`) after a service has been deployed and backed up. Restic backup snapshots store files with their original absolute paths. If you change the deploy directory, restores will put files back at the old path instead of the new one, and the restored data won't be picked up by the service.
 
 If you must change a deploy directory after backups exist, you'll need to manually move the restored files from the old path to the new one.
 
@@ -173,23 +167,6 @@ ansible-playbook playbooks/netbird.yml
 
 You'll be prompted for a setup key (generate one from the [NetBird dashboard](https://app.netbird.io)). The playbook skips registration if the peer is already connected, so re-runs are safe.
 
-### Dockmon (`playbooks/dockmon.yml`)
-
-Deploys Dockmon — a Docker container monitoring dashboard. Includes automated backup and restore via Restic.
-
-```bash
-ansible-playbook playbooks/dockmon.yml
-```
-
-Accessible at `https://<pi-ip>:8001` after deployment.
-
-If the Restic playbook has been run, the dockmon playbook will:
-- Restore from the latest S3 backup on fresh deployments (so you get your config back after a crash)
-- Set up a daily systemd timer (3 AM) that backs up the `dockmon_data` Docker volume to S3
-- Retain 7 daily, 4 weekly, and 2 monthly backup snapshots
-
-Check backup logs with `journalctl -u dockmon-backup.service` and timer status with `systemctl status dockmon-backup.timer`.
-
 ### Monitoring Stack (`playbooks/monitoring.yml`)
 
 Deploys the full monitoring and logging stack — Prometheus for metrics, Loki for logs, and Grafana for visualization. All five services run in a single Docker Compose project.
@@ -224,7 +201,6 @@ All variables are in `group_vars/` with descriptive comments. Key files:
 - `group_vars/frigate.yml` — Frigate deployment directory, AWS region
 - `group_vars/calibre-web.yml` — CWA deployment directory, data subdirectories, backup schedule
 - `group_vars/netbird.yml` — NetBird repository and GPG key URLs
-- `group_vars/dockmon.yml` — Dockmon deployment directory, backup schedule
 - `group_vars/monitoring.yml` — Monitoring stack deployment directory, backup schedules (Prometheus, Loki, Grafana)
 - `group_vars/restic.yml` — Restic backup AWS region
 - `group_vars/all.yml` — Shared settings (reboot timeout)
