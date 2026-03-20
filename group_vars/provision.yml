@@ -86,20 +86,20 @@ docker_log_max_file: "3"
 # Section: Hardware Watchdog (tag: watchdog)
 # ──────────────────────────────────────────────
 
-# Seconds before hardware reboot if watchdog isn't kicked (Pi max is 15)
+# Seconds before hardware reboot if watchdog isn't kicked (Pi 4B max is 15)
 watchdog_timeout: 15
 
-# Reboot if 1-minute load average exceeds this value
-watchdog_max_load: 24
+# Reboot if 1-minute load average exceeds this value (Pi 4B has 4 cores, 4x = 16)
+watchdog_max_load: 16
 
-# Reboot if free memory drops below this many pages (1 page = 4KB, 2560 pages = 10MB)
-watchdog_min_memory: 2560
+# Reboot if free memory drops below this many pages (1 page = 4KB, 25600 pages = 100MB)
+watchdog_min_memory: 25600
 
-# Reboot if CPU temperature exceeds this value in Celsius (Pi throttles at 80-85)
-watchdog_max_temperature: 85
+# Reboot if CPU temperature exceeds this value in Celsius (Pi 4B throttles at 80)
+watchdog_max_temperature: 80
 
 # How often (in seconds) the daemon kicks the watchdog device — must be less than timeout
-watchdog_interval: 1
+watchdog_interval: 5
 
 # ──────────────────────────────────────────────
 # Section: Persistent Journald Logging (tag: logging)

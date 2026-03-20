@@ -283,6 +283,27 @@
       register: watchdog_boot_config
       tags: [watchdog]
 
+    # Ensure the bcm2835_wdt kernel module loads at boot
+    - name: Load watchdog kernel module on boot
+      ansible.builtin.lineinfile:
+        path: /etc/modules-load.d/watchdog.conf
+        line: 'bcm2835_wdt'
+        create: yes
+        owner: root
+        group: root
+        mode: "0644"
+      tags: [watchdog]
+
+    # Disable systemd's built-in watchdog so it doesn't claim /dev/watchdog before
+    # the watchdog daemon. Systemd's watchdog only checks if PID 1 is alive — the
+    # userspace daemon is more capable (load, memory, temperature, ping checks).
+    - name: Disable systemd RuntimeWatchdogSec
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/system.conf
+        regexp: '^#?RuntimeWatchdogSec='
+        line: 'RuntimeWatchdogSec=0'
+      tags: [watchdog]
+
     # Install the userspace watchdog daemon that kicks the hardware watchdog
     - name: Install watchdog package
       ansible.builtin.apt:
