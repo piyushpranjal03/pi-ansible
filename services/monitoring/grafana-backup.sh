@@ -46,6 +46,9 @@ docker run --rm \
 # Back up the tar to Restic with a service-specific tag
 timeout "$BACKUP_TIMEOUT" restic backup "$MOUNT_PATH" --tag "$TAG" || { log_error "Failed to upload backup to Restic (timed out or errored after ${BACKUP_TIMEOUT}s)"; BACKUP_FAILED=true; exit 1; }
 
+# Remove any stale locks left by previously interrupted operations
+restic unlock || true
+
 # Prune old snapshots (keep 7 daily, 4 weekly, 2 monthly)
 restic forget --tag "$TAG" --keep-daily 7 --keep-weekly 4 --keep-monthly 2 --prune || log_error "Failed to prune old snapshots"
 
