@@ -329,6 +329,12 @@
           max-temperature = {{ watchdog_max_temperature }}
           temperature-sensor = /sys/class/thermal/thermal_zone0/temp
 
+          # Network health monitoring — reboot if gateway is unreachable
+          ping = {{ watchdog_ping_gateway }}
+
+          # Tolerate failures for 120s before acting — prevents false reboots during boot
+          retry-timeout = 120
+
           # Run as realtime process so it doesn't get starved by runaway processes
           realtime = yes
           priority = 1

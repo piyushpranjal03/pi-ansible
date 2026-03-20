@@ -101,6 +101,9 @@ watchdog_max_temperature: 80
 # How often (in seconds) the daemon kicks the watchdog device — must be less than timeout
 watchdog_interval: 5
 
+# Gateway IP to ping for network health monitoring — triggers reboot if unreachable
+watchdog_ping_gateway: "192.168.18.1"
+
 # ──────────────────────────────────────────────
 # Section: Persistent Journald Logging (tag: logging)
 # ──────────────────────────────────────────────
