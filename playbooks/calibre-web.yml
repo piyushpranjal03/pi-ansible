@@ -149,6 +149,7 @@
 
           [Timer]
           OnCalendar={{ cwa_backup_schedule }}
+          RandomizedDelaySec=600
           Persistent=true
 
           [Install]

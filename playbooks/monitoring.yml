@@ -249,6 +249,7 @@
 
           [Timer]
           OnCalendar={{ prometheus_backup_schedule }}
+          RandomizedDelaySec=600
           Persistent=true
 
           [Install]
@@ -304,6 +305,7 @@
 
           [Timer]
           OnCalendar={{ loki_backup_schedule }}
+          RandomizedDelaySec=600
           Persistent=true
 
           [Install]
@@ -359,6 +361,7 @@
 
           [Timer]
           OnCalendar={{ grafana_backup_schedule }}
+          RandomizedDelaySec=600
           Persistent=true
 
           [Install]
