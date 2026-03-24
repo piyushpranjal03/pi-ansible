@@ -1,0 +1,9 @@
+---
+# Cloudflare Tunnel variables
+
+# ──────────────────────────────────────────────
+# Section: Directories
+# ──────────────────────────────────────────────
+
+# Base directory for cloudflared on the target host
+cloudflared_dir: /opt/cloudflared
