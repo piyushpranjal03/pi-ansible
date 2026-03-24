@@ -1,5 +1,7 @@
 # Environment files (contain secrets)
 .env
+.idea
+.kiro
 *.env
 
 # SSH keys
