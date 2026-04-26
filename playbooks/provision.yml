@@ -358,19 +358,38 @@
     # By default Pi OS stores journal logs in memory (tmpfs) — they're lost on every reboot.
     # This section enables persistent storage so we can review logs from previous boots
     # (watchdog reboots, unattended-upgrade failures, Docker crashes, etc.)
+    #
+    # The setup follows the exact procedure from systemd-journald(8):
+    #   mkdir -p /var/log/journal
+    #   systemd-tmpfiles --create --prefix /var/log/journal
+    # Just creating /var/log/journal/ with `file:` is NOT enough — journald also needs the
+    # per-machine-id subdirectory `/var/log/journal/<machine-id>/` to exist with the correct
+    # ACLs and setgid bits. Those are defined in /usr/lib/tmpfiles.d/systemd.conf and only
+    # get materialised by `systemd-tmpfiles --create`. Without that step journald sees the
+    # empty top directory, finds no writable per-machine subdirectory, and silently falls
+    # back to /run/log/journal/ (tmpfs) for the life of the process.
 
-    # Create /var/log/journal/ with the exact ownership and permissions journald requires
-    # for persistent storage. Setting Storage=persistent in journald.conf is NOT sufficient on
-    # its own — if this directory does not exist with owner root:systemd-journal and mode 2755
-    # (the leading 2 is the setgid bit), journald silently falls back to volatile storage under
-    # /run/log/journal/ (tmpfs) with no warning, and logs are wiped on every reboot.
-    - name: Ensure persistent journal directory exists
+    # Create the top-level /var/log/journal/ directory. systemd-tmpfiles will refuse to
+    # operate inside a path whose parent doesn't exist, so this task must run before the
+    # tmpfiles step. On an already-healthy Pi this reports `ok` (not `changed`).
+    - name: Ensure persistent journal top-level directory exists
       ansible.builtin.file:
         path: /var/log/journal
         state: directory
         owner: root
         group: systemd-journal
         mode: "2755"
+      tags: [logging]
+
+    # Ask systemd to materialise the per-machine-id subdirectory and every ACL/setgid rule
+    # shipped in /usr/lib/tmpfiles.d/systemd.conf for /var/log/journal/. This is the step
+    # the official systemd-journald(8) manpage documents as required to enable persistent
+    # logging on systems where /var/log/journal/ didn't previously exist. Running it a
+    # second time is a no-op (tmpfiles is idempotent by design), so this is safe to run on
+    # every play.
+    - name: Apply systemd-tmpfiles rules for /var/log/journal
+      ansible.builtin.command: systemd-tmpfiles --create --prefix /var/log/journal
+      changed_when: false
       notify: restart journald
       tags: [logging]
 
@@ -407,21 +426,16 @@
       tags: [logging]
 
     # Migrate runtime logs from /run/log/journal/ (tmpfs) to /var/log/journal/ and flip
-    # the active write target, using the systemd-supported path.
+    # the active write target. Per systemd-journald(8): "journald will initially use
+    # volatile storage, until a call to `journalctl --flush` (or sending SIGUSR1 to
+    # journald) will cause it to switch to persistent logging ... This is done
+    # automatically on boot via systemd-journal-flush.service."
     #
-    # Why this is non-trivial: journald decides at *startup* whether to write to
-    # /var/log/journal/. If the directory did not exist at the last systemd-journald
-    # startup, journald locks itself into volatile/runtime mode for the entire session,
-    # and a userspace `journalctl --flush` is a silent no-op. The only reliable way to
-    # trigger the migration is `systemd-journal-flush.service` — the unit systemd itself
-    # uses during boot, which issues the flush via the journald control socket and also
-    # restarts journald so it re-evaluates its storage target.
-    #
-    # We `state: restarted` rather than `state: started` so the service runs *every
-    # play*, not just when it was previously inactive. This is the only way to force a
-    # flush on a Pi where journald has already booted into volatile mode. The service is
-    # a Type=oneshot — restarting it is cheap and does not restart journald more than
-    # necessary (it only reissues the flush request; journald is already running).
+    # We re-trigger that same service here so the flush happens immediately after
+    # tmpfiles has set up the per-machine-id subdirectory, rather than waiting for the
+    # next boot. state: restarted ensures it runs on every play (the unit is
+    # Type=oneshot, so it's "inactive" after its first successful run — `state: started`
+    # would be a no-op on re-runs).
     - name: Trigger systemd-journal-flush to migrate logs to persistent storage
       ansible.builtin.systemd:
         name: systemd-journal-flush.service
