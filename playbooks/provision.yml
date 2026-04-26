@@ -398,21 +398,34 @@
       notify: restart journald
       tags: [logging]
 
-    # Force the restart journald handler to run NOW, before verification — otherwise
-    # handlers flush at end-of-play and the verification below would read stale state.
-    # No-op on runs where no config change was made.
+    # Force the restart journald handler to run NOW, before we trigger the flush —
+    # otherwise handlers flush at end-of-play and the flush step below would run against
+    # the pre-restart journald, which has already locked itself into volatile mode for
+    # this session. No-op on runs where no config change was made.
     - name: Flush handlers to apply journald changes before verification
       ansible.builtin.meta: flush_handlers
       tags: [logging]
 
-    # Explicitly migrate any logs in /run/log/journal/ (tmpfs) to /var/log/journal/ and
-    # switch the active journal to the persistent location. Restarting systemd-journald
-    # alone is not always sufficient — journald can keep writing to its original runtime
-    # location until the next flush. `journalctl --flush` is the canonical operation
-    # Debian package scripts use when journald is first configured for persistent storage.
-    # On a Pi that is already persistent, this is a cheap no-op.
-    - name: Flush journald to persistent storage
-      ansible.builtin.command: journalctl --flush
+    # Migrate runtime logs from /run/log/journal/ (tmpfs) to /var/log/journal/ and flip
+    # the active write target, using the systemd-supported path.
+    #
+    # Why this is non-trivial: journald decides at *startup* whether to write to
+    # /var/log/journal/. If the directory did not exist at the last systemd-journald
+    # startup, journald locks itself into volatile/runtime mode for the entire session,
+    # and a userspace `journalctl --flush` is a silent no-op. The only reliable way to
+    # trigger the migration is `systemd-journal-flush.service` — the unit systemd itself
+    # uses during boot, which issues the flush via the journald control socket and also
+    # restarts journald so it re-evaluates its storage target.
+    #
+    # We `state: restarted` rather than `state: started` so the service runs *every
+    # play*, not just when it was previously inactive. This is the only way to force a
+    # flush on a Pi where journald has already booted into volatile mode. The service is
+    # a Type=oneshot — restarting it is cheap and does not restart journald more than
+    # necessary (it only reissues the flush request; journald is already running).
+    - name: Trigger systemd-journal-flush to migrate logs to persistent storage
+      ansible.builtin.systemd:
+        name: systemd-journal-flush.service
+        state: restarted
       changed_when: false
       tags: [logging]
 
@@ -461,7 +474,8 @@
           "{{ journald_header.stdout[:200] }}").
           Check that /var/log/journal/ exists with owner root:systemd-journal and mode 2755,
           that Storage=persistent is set in /etc/systemd/journald.conf (no typos), and that
-          `journalctl --flush` ran successfully after the most recent config change.
+          systemd-journal-flush.service is enabled and ran successfully (journald locks in
+          volatile mode at startup and can only be flipped by this service or a reboot).
         success_msg: >
           journald is writing persistent logs to
           /var/log/journal/{{ (machine_id_file.content | b64decode).strip() }}/.
