@@ -359,6 +359,21 @@
     # This section enables persistent storage so we can review logs from previous boots
     # (watchdog reboots, unattended-upgrade failures, Docker crashes, etc.)
 
+    # Create /var/log/journal/ with the exact ownership and permissions journald requires
+    # for persistent storage. Setting Storage=persistent in journald.conf is NOT sufficient on
+    # its own — if this directory does not exist with owner root:systemd-journal and mode 2755
+    # (the leading 2 is the setgid bit), journald silently falls back to volatile storage under
+    # /run/log/journal/ (tmpfs) with no warning, and logs are wiped on every reboot.
+    - name: Ensure persistent journal directory exists
+      ansible.builtin.file:
+        path: /var/log/journal
+        state: directory
+        owner: root
+        group: systemd-journal
+        mode: "2755"
+      notify: restart journald
+      tags: [logging]
+
     - name: Configure journald storage mode
       ansible.builtin.lineinfile:
         path: /etc/systemd/journald.conf
@@ -382,6 +397,37 @@
         line: 'MaxRetentionSec={{ journald_max_retention }}'
       notify: restart journald
       tags: [logging]
+
+    # Force the restart journald handler to run NOW, before verification — otherwise
+    # handlers flush at end-of-play and the verification below would read stale state.
+    # No-op on runs where no config change was made.
+    - name: Flush handlers to apply journald changes before verification
+      ansible.builtin.meta: flush_handlers
+      tags: [logging]
+
+    # Verify journald is actually persisting logs to /var/log/journal/, not silently
+    # running in volatile mode. Without this check, a broken deployment (missing directory,
+    # wrong ownership, invalid Storage= value) looks identical to a healthy one in the play
+    # recap, and crash-time logs are lost until someone notices months later.
+    - name: Query journald storage location
+      ansible.builtin.command: journalctl --disk-usage
+      register: journald_disk_usage
+      changed_when: false
+      tags: [logging]
+
+    - name: Verify journald is writing to persistent storage
+      ansible.builtin.assert:
+        that:
+          - "'/var/log/journal' in journald_disk_usage.stdout"
+        fail_msg: >
+          journald is NOT writing to /var/log/journal/ — it has silently fallen back to
+          volatile storage. journalctl --disk-usage reported: "{{ journald_disk_usage.stdout }}".
+          Check that /var/log/journal/ exists with owner root:systemd-journal and mode 2755,
+          that Storage=persistent is set in /etc/systemd/journald.conf (no typos), and that
+          systemd-journald was restarted after the most recent config change.
+        success_msg: "journald is writing persistent logs to /var/log/journal/."
+      tags: [logging]
+
 
     # ──────────────────────────────────────────────
     # Section: System Hardening — SSH (tag: hardening)
