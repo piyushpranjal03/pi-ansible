@@ -405,27 +405,66 @@
       ansible.builtin.meta: flush_handlers
       tags: [logging]
 
+    # Explicitly migrate any logs in /run/log/journal/ (tmpfs) to /var/log/journal/ and
+    # switch the active journal to the persistent location. Restarting systemd-journald
+    # alone is not always sufficient — journald can keep writing to its original runtime
+    # location until the next flush. `journalctl --flush` is the canonical operation
+    # Debian package scripts use when journald is first configured for persistent storage.
+    # On a Pi that is already persistent, this is a cheap no-op.
+    - name: Flush journald to persistent storage
+      ansible.builtin.command: journalctl --flush
+      changed_when: false
+      tags: [logging]
+
     # Verify journald is actually persisting logs to /var/log/journal/, not silently
     # running in volatile mode. Without this check, a broken deployment (missing directory,
     # wrong ownership, invalid Storage= value) looks identical to a healthy one in the play
     # recap, and crash-time logs are lost until someone notices months later.
-    - name: Query journald storage location
-      ansible.builtin.command: journalctl --disk-usage
-      register: journald_disk_usage
+    #
+    # We check two things:
+    #   1. /var/log/journal/<machine-id>/ exists — journald creates this subdirectory
+    #      the moment it starts writing persistent logs. Its absence is definitive proof
+    #      that journald is still in volatile mode.
+    #   2. `journalctl --header` reports a File Path under /var/log/journal/ — catches
+    #      the edge case where the machine-id directory exists (from a previous successful
+    #      run) but journald is currently writing to /run/log/journal/ anyway.
+    - name: Read machine-id for journal directory check
+      ansible.builtin.slurp:
+        src: /etc/machine-id
+      register: machine_id_file
+      tags: [logging]
+
+    - name: Check persistent journal directory for this machine exists
+      ansible.builtin.stat:
+        path: "/var/log/journal/{{ (machine_id_file.content | b64decode).strip() }}"
+      register: persistent_journal_dir
+      tags: [logging]
+
+    - name: Query journald active file paths
+      ansible.builtin.command: journalctl --header --quiet
+      register: journald_header
       changed_when: false
       tags: [logging]
 
     - name: Verify journald is writing to persistent storage
       ansible.builtin.assert:
         that:
-          - "'/var/log/journal' in journald_disk_usage.stdout"
+          - persistent_journal_dir.stat.exists
+          - persistent_journal_dir.stat.isdir
+          - "'/var/log/journal/' in journald_header.stdout"
         fail_msg: >
-          journald is NOT writing to /var/log/journal/ — it has silently fallen back to
-          volatile storage. journalctl --disk-usage reported: "{{ journald_disk_usage.stdout }}".
+          journald is NOT writing persistent logs.
+          Expected /var/log/journal/{{ (machine_id_file.content | b64decode).strip() }}/ to exist
+          (stat result: exists={{ persistent_journal_dir.stat.exists }},
+          isdir={{ persistent_journal_dir.stat.isdir | default(false) }}) AND
+          `journalctl --header` to reference /var/log/journal/ (first 200 chars of output:
+          "{{ journald_header.stdout[:200] }}").
           Check that /var/log/journal/ exists with owner root:systemd-journal and mode 2755,
           that Storage=persistent is set in /etc/systemd/journald.conf (no typos), and that
-          systemd-journald was restarted after the most recent config change.
-        success_msg: "journald is writing persistent logs to /var/log/journal/."
+          `journalctl --flush` ran successfully after the most recent config change.
+        success_msg: >
+          journald is writing persistent logs to
+          /var/log/journal/{{ (machine_id_file.content | b64decode).strip() }}/.
       tags: [logging]
 
 
